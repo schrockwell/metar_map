@@ -53,9 +53,26 @@ defmodule MetarMap.MetarFetcher do
   end
 
   defp merge_metars(state, metars) do
+    metar_station_ids = Enum.map(metars, & &1.station_id)
+    config_station_ids = Map.keys(state.stations)
+    missing_station_ids = config_station_ids -- metar_station_ids
+    extra_station_ids = metar_station_ids -- config_station_ids
+
+    if !Enum.empty?(missing_station_ids) do
+      IO.puts("[MetarFetcher] WARNING: Could not find #{Enum.join(missing_station_ids, ", ")}")
+    end
+
+    if !Enum.empty?(extra_station_ids) do
+      IO.puts("[MetarFetcher] WARNING: Found extra #{Enum.join(extra_station_ids, ", ")}")
+    end
+
     new_stations =
       Enum.reduce(metars, state.stations, fn metar, stations ->
-        Map.update!(stations, metar.station_id, &MetarMap.Station.put_metar(&1, metar))
+        if Map.has_key?(stations, metar.station_id) do
+          Map.update!(stations, metar.station_id, &MetarMap.Station.put_metar(&1, metar))
+        else
+          stations
+        end
       end)
 
     %{state | stations: new_stations}
