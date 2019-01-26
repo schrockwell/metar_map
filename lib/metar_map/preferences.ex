@@ -3,8 +3,6 @@ defmodule MetarMap.Preferences do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @channel 0
-
   @primary_key false
   embedded_schema do
     field :brightness, :integer, default: 64
@@ -36,7 +34,10 @@ defmodule MetarMap.Preferences do
     |> cast(params, permitted)
     |> validate_number(:brightness, greater_than_or_equal_to: 0, less_than_or_equal_to: 255)
     |> validate_number(:max_wind_kts, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
-    |> validate_number(:wind_flash_interval_ms, greater_than_or_equal_to: 5000)
+    |> validate_number(:wind_flash_interval_ms,
+      greater_than_or_equal_to: 5_000,
+      less_than_or_equal_to: 60_000
+    )
     |> Map.put(:action, :update)
   end
 
@@ -49,6 +50,8 @@ defmodule MetarMap.Preferences do
           changeset
           |> apply_changes()
           |> save()
+
+        MetarMap.LightController.reload_preferences()
 
         {:ok, prefs}
 

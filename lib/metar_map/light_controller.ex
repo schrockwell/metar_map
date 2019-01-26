@@ -25,12 +25,14 @@ defmodule MetarMap.LightController do
     GenServer.cast(__MODULE__, {:render_stations, stations})
   end
 
+  def reload_preferences do
+    GenServer.cast(__MODULE__, :reload_preferences)
+  end
+
   @impl true
   def init(_opts) do
-    # Reset the LEDs to be all off
-    prefs = Preferences.load()
-    :ok = Blinkchain.set_brightness(@channel, prefs.brightness)
-    Blinkchain.render()
+    # Load prefs
+    reload_preferences()
 
     # Kick off animations
     send(self(), :tick)
@@ -76,7 +78,6 @@ defmodule MetarMap.LightController do
     {:noreply, %{state | leds: leds, first_render: false, latest_stations: stations}}
   end
 
-  @impl true
   def handle_cast({:render_stations, stations}, state) do
     # The list of stations we get here should be already sorted by index
     stations |> Enum.map(&{&1.id, Station.get_category(&1)}) |> IO.inspect()
@@ -86,6 +87,15 @@ defmodule MetarMap.LightController do
     Blinkchain.render()
 
     {:noreply, %{state | leds: leds, first_render: false, latest_stations: stations}}
+  end
+
+  def handle_cast(:reload_preferences, state) do
+    prefs = Preferences.load()
+
+    :ok = Blinkchain.set_brightness(@channel, prefs.brightness)
+    Blinkchain.render()
+
+    {:noreply, state}
   end
 
   @impl true
