@@ -5,7 +5,7 @@
 
   <div class="mb-3">
     <label>LED brightness is</label>
-    <%= text_input(f, :brightness_pct, class: "w-16") %>%.
+    <%= text_input(f, :brightness_pct, class: "w-16") %> %.
     <%= error_tag(f, :brightness_pct) %>
   </div>
 
