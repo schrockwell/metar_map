@@ -8,10 +8,11 @@ defmodule MetarMap.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
+      {MetarMap.LightController, config_file: "priv/example_config"},
+      {MetarMap.MetarFetcher, config_file: "priv/example_config"},
+
       # Start the endpoint when the application starts
       MetarMapWeb.Endpoint
-      # Starts a worker by calling: MetarMap.Worker.start_link(arg)
-      # {MetarMap.Worker, arg},
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
