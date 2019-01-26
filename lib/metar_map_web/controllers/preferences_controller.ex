@@ -1,4 +1,4 @@
-defmodule MetarMapWeb.PageController do
+defmodule MetarMapWeb.PreferencesController do
   use MetarMapWeb, :controller
 
   def index(conn, _params) do
