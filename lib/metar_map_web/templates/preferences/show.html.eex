@@ -1,1 +1,38 @@
-herp derp
+<h2 class="mb-4">METAR Map &ndash; Preferences</h2>
+
+<%= form_for @changeset, Routes.preferences_path(@conn, :update), fn f -> %>
+ <input name="_method" type="hidden" value="patch" />
+
+  <div class="mb-3">
+    <label>LED brightness is</label>
+    <%= text_input(f, :brightness, class: "w-16") %> out of 255.
+    <%= error_tag(f, :brightness) %>
+  </div>
+
+  <div class="mb-3">
+    <label>Flash a station when its winds are at least</label>
+    <%= text_input(f, :max_wind_kts, class: "w-16") %> kts (0 to disable).
+    <%= error_tag(f, :max_wind_kts) %>
+  </div>
+
+  <div class="mb-3">
+    <label>Flash windy stations every</label>
+    <%= text_input(f, :wind_flash_interval_ms, class: "w-16") %> ms.
+    <%= error_tag(f, :wind_flash_interval_ms) %>
+  </div>
+
+  <%= submit "Save", class: "px-5 py-3 bg-blue text-white hover:bg-blue-dark" %>
+  <span class="alert px-3 py-2 my-4 text-green" role="alert"><%= get_flash(@conn, :info) %></span>
+  <span class="alert px-3 py-2 my-4 text-red" role="alert"><%= get_flash(@conn, :error) %></span>
+<% end %>
+
+
+<script type="text/javascript">
+  setTimeout(function() {
+    var alerts = document.querySelectorAll('.alert');
+
+    for (var i = 0; i < alerts.length; i++) {
+      alerts[i].style.display = 'none';
+    }
+  }, 3000)
+</script>

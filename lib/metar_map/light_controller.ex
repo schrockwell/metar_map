@@ -28,7 +28,8 @@ defmodule MetarMap.LightController do
   @impl true
   def init(_opts) do
     # Reset the LEDs to be all off
-    :ok = Blinkchain.set_brightness(@channel, Preferences.get(:brightness))
+    prefs = Preferences.load()
+    :ok = Blinkchain.set_brightness(@channel, prefs.brightness)
     Blinkchain.render()
 
     # Kick off animations
@@ -99,10 +100,12 @@ defmodule MetarMap.LightController do
   end
 
   def handle_info(:check_winds, state) do
-    if Preferences.get(:do_flash_wind) do
+    prefs = Preferences.load()
+
+    if prefs.max_wind_kts > 0 do
       leds =
         Enum.reduce(state.latest_stations, state.leds, fn station, leds ->
-          if Station.get_max_wind(station) >= Preferences.get(:max_wind_kts) and
+          if Station.get_max_wind(station) >= prefs.max_wind_kts and
                state.leds[station.index].transitions == [] do
             leds
             |> schedule_transition(station.index, 0, @fade_duration_ms, color(:off))
@@ -117,10 +120,10 @@ defmodule MetarMap.LightController do
           end
         end)
 
-      Process.send_after(self(), :check_winds, Preferences.get(:wind_flash_interval_ms))
+      Process.send_after(self(), :check_winds, prefs.wind_flash_interval_ms)
       {:noreply, %{state | leds: leds}}
     else
-      Process.send_after(self(), :check_winds, Preferences.get(:wind_flash_interval_ms))
+      Process.send_after(self(), :check_winds, prefs.wind_flash_interval_ms)
       {:noreply, state}
     end
   end

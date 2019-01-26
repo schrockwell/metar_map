@@ -41,7 +41,8 @@ defmodule MetarMap.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:sweet_xml, "~> 0.6.5"},
       {:blinkchain, "~> 1.0-rc"},
-      {:httpoison, "~> 1.5"}
+      {:httpoison, "~> 1.5"},
+      {:phoenix_ecto, "~> 4.0"}
     ]
   end
 end

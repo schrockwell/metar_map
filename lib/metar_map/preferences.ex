@@ -1,31 +1,67 @@
 defmodule MetarMap.Preferences do
   alias MetarMap.Dets
+  use Ecto.Schema
+  import Ecto.Changeset
 
   @channel 0
 
-  def get(:brightness) do
-    Dets.get(:brightness, 64)
+  @primary_key false
+  embedded_schema do
+    field :brightness, :integer, default: 64
+    field :max_wind_kts, :integer, default: 20
+    field :wind_flash_interval_ms, :integer, default: 5000
   end
 
-  def get(:do_flash_wind) do
-    Dets.get(:do_flash_wind, true)
+  def load do
+    :fields
+    |> MetarMap.Preferences.__schema__()
+    |> Dets.get()
+    |> Enum.reduce(%__MODULE__{}, fn {field, value}, prefs ->
+      if is_nil(value) do
+        prefs
+      else
+        Map.put(prefs, field, value)
+      end
+    end)
   end
 
-  def get(:max_wind_kts) do
-    Dets.get(:max_wind_kts, 20)
+  def changeset(prefs, params \\ %{}) do
+    permitted = [
+      :brightness,
+      :max_wind_kts,
+      :wind_flash_interval_ms
+    ]
+
+    prefs
+    |> cast(params, permitted)
+    |> validate_number(:brightness, greater_than_or_equal_to: 0, less_than_or_equal_to: 255)
+    |> validate_number(:max_wind_kts, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
+    |> validate_number(:wind_flash_interval_ms, greater_than_or_equal_to: 5000)
+    |> Map.put(:action, :update)
   end
 
-  def get(:wind_flash_interval_ms) do
-    Dets.get(:wind_flash_interval_ms, 5000)
+  def update(prefs, params) do
+    prefs
+    |> changeset(params)
+    |> case do
+      %{valid?: true} = changeset ->
+        prefs =
+          changeset
+          |> apply_changes()
+          |> save()
+
+        {:ok, prefs}
+
+      changeset ->
+        {:error, changeset}
+    end
   end
 
-  def set(:brightness, value) do
-    Dets.put(:brightness, value)
-    Blinkchain.set_brightness(@channel, value)
-    Blinkchain.render()
-  end
+  def save(%__MODULE__{} = prefs) do
+    prefs
+    |> Map.take(MetarMap.Preferences.__schema__(:fields))
+    |> Dets.put()
 
-  def set(key, value) do
-    Dets.put(key, value)
+    prefs
   end
 end
