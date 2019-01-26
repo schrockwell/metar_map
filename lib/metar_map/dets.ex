@@ -63,8 +63,7 @@ defmodule MetarMap.Dets do
   end
 
   defp open_table! do
-    filename =
-      [:code.priv_dir(:metar_map), 'dets', 'config'] |> Path.join() |> String.to_charlist()
+    filename = [:code.priv_dir(:metar_map), 'dets_config'] |> Path.join() |> String.to_charlist()
 
     {:ok, :config} = :dets.open_file(:config, type: :set, file: filename)
   end
