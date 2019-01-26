@@ -22,6 +22,8 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+config :metar_map, :stations, "priv/example_stations.exs"
+
 import_config "blinkchain.exs"
 
 # Import environment specific config. This must remain at the bottom

@@ -19,4 +19,16 @@ defmodule MetarMap.Station do
   end
 
   def put_metar(%__MODULE__{} = station, metar), do: %{station | metar: metar}
+
+  def list(filename) do
+    filename
+    |> Code.eval_file()
+    |> elem(0)
+    |> Enum.map(fn {station_id, index} ->
+      %__MODULE__{
+        id: station_id,
+        index: index
+      }
+    end)
+  end
 end

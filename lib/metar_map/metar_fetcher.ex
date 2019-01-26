@@ -8,10 +8,20 @@ defmodule MetarMap.MetarFetcher do
   end
 
   @impl true
-  def init(opts) do
-    %{stations: stations} = opts |> Keyword.fetch!(:config_file) |> MetarMap.Config.load_file()
+  def init(_opts) do
+    filename = Application.get_env(:metar_map, :stations)
+
+    if !filename do
+      raise "Missing: `config :metar_map, :stations, \"/some/path.exs\""
+    end
 
     send(self(), :poll)
+
+    stations =
+      filename
+      |> MetarMap.Station.list()
+      |> Enum.map(&{&1.id, &1})
+      |> Map.new()
 
     {:ok, %{stations: stations}}
   end

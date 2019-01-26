@@ -1,4 +1,4 @@
-defmodule MetarMap.DetsConfig do
+defmodule MetarMap.Dets do
   @doc """
   Gets many keys as a map. Missing keys are set to `nil`
   """

@@ -2,7 +2,7 @@ defmodule MetarMap.LightController do
   use GenServer
 
   alias Blinkchain.Color
-  alias MetarMap.{Station, Config}
+  alias MetarMap.{Station, Preferences}
 
   @channel 0
   @frame_interval_ms 20
@@ -26,17 +26,32 @@ defmodule MetarMap.LightController do
   end
 
   @impl true
-  def init(opts) do
-    config = opts |> Keyword.fetch!(:config_file) |> Config.load_file()
-
+  def init(_opts) do
     # Reset the LEDs to be all off
-    :ok = Blinkchain.set_brightness(@channel, config.brightness)
+    :ok = Blinkchain.set_brightness(@channel, Preferences.get(:brightness))
     Blinkchain.render()
 
-    # Generate map of %{index => %Led{index, latest_color, transitions}}
+    # Kick off animations
+    send(self(), :tick)
+
+    # Kick off max wind flashing
+    send(self(), :check_winds)
+
+    {:ok,
+     %{
+       leds: %{},
+       first_render: true,
+       latest_stations: []
+     }}
+  end
+
+  @impl true
+  def handle_cast({:render_stations, stations}, %{first_render: true} = state) do
+    stations |> Enum.map(&{&1.id, Station.get_category(&1)}) |> IO.inspect()
+
+    # Build the map
     leds =
-      config.stations
-      |> Map.values()
+      stations
       |> Enum.map(
         &{&1.index,
          %Led{
@@ -47,22 +62,17 @@ defmodule MetarMap.LightController do
       )
       |> Map.new()
 
-    # Kick off animations
-    send(self(), :tick)
+    # Do the fade-in effect
+    leds =
+      stations
+      |> Enum.with_index()
+      |> Enum.reduce(leds, fn {station, i}, leds ->
+        set_station_color(leds, station, delay_ms: i * @fade_in_delay_ms)
+      end)
 
-    # Kick off max wind flashing
-    if config.wind_flash_interval_ms do
-      send(self(), :check_winds)
-    end
+    Blinkchain.render()
 
-    {:ok,
-     %{
-       max_wind_kts: config.max_wind_kts,
-       leds: leds,
-       first_render: true,
-       latest_stations: [],
-       config: config
-     }}
+    {:noreply, %{state | leds: leds, first_render: false}}
   end
 
   @impl true
@@ -70,18 +80,7 @@ defmodule MetarMap.LightController do
     # The list of stations we get here should be already sorted by index
     stations |> Enum.map(&{&1.id, Station.get_category(&1)}) |> IO.inspect()
 
-    # On the first render, work our way through the LED string and add increasing delays, 
-    # to have a cool fade-in effect
-    leds =
-      if state.first_render do
-        stations
-        |> Enum.with_index()
-        |> Enum.reduce(state.leds, fn {station, i}, leds ->
-          set_station_color(leds, station, delay_ms: i * @fade_in_delay_ms)
-        end)
-      else
-        Enum.reduce(stations, state.leds, &set_station_color(&2, &1))
-      end
+    leds = Enum.reduce(stations, state.leds, &set_station_color(&2, &1))
 
     Blinkchain.render()
 
@@ -100,26 +99,30 @@ defmodule MetarMap.LightController do
   end
 
   def handle_info(:check_winds, state) do
-    leds =
-      Enum.reduce(state.latest_stations, state.leds, fn station, leds ->
-        if Station.get_max_wind(station) >= state.config.max_wind_kts and
-             state.leds[station.index].transitions == [] do
-          leds
-          |> schedule_transition(station.index, 0, @fade_duration_ms, color(:off))
-          |> schedule_transition(
-            station.index,
-            @fade_duration_ms + 100,
-            @fade_duration_ms,
-            color(station)
-          )
-        else
-          leds
-        end
-      end)
+    if Preferences.get(:do_flash_wind) do
+      leds =
+        Enum.reduce(state.latest_stations, state.leds, fn station, leds ->
+          if Station.get_max_wind(station) >= Preferences.get(:max_wind_kts) and
+               state.leds[station.index].transitions == [] do
+            leds
+            |> schedule_transition(station.index, 0, @fade_duration_ms, color(:off))
+            |> schedule_transition(
+              station.index,
+              @fade_duration_ms + 100,
+              @fade_duration_ms,
+              color(station)
+            )
+          else
+            leds
+          end
+        end)
 
-    Process.send_after(self(), :check_winds, state.config.wind_flash_interval_ms)
-
-    {:noreply, %{state | leds: leds}}
+      Process.send_after(self(), :check_winds, Preferences.get(:wind_flash_interval_ms))
+      {:noreply, %{state | leds: leds}}
+    else
+      Process.send_after(self(), :check_winds, Preferences.get(:wind_flash_interval_ms))
+      {:noreply, state}
+    end
   end
 
   defp now_ms, do: :erlang.monotonic_time(:millisecond)

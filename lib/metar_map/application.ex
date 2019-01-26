@@ -8,8 +8,8 @@ defmodule MetarMap.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
-      {MetarMap.LightController, config_file: "priv/example_config"},
-      {MetarMap.MetarFetcher, config_file: "priv/example_config"},
+      MetarMap.LightController,
+      MetarMap.MetarFetcher,
 
       # Start the endpoint when the application starts
       MetarMapWeb.Endpoint
