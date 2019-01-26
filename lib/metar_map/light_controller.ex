@@ -72,7 +72,7 @@ defmodule MetarMap.LightController do
 
     Blinkchain.render()
 
-    {:noreply, %{state | leds: leds, first_render: false}}
+    {:noreply, %{state | leds: leds, first_render: false, latest_stations: stations}}
   end
 
   @impl true
