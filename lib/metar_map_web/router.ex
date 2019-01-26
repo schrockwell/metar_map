@@ -16,7 +16,7 @@ defmodule MetarMapWeb.Router do
   scope "/", MetarMapWeb do
     pipe_through :browser
 
-    get "/", PreferencesController, :index
+    resources "/", PreferencesController, singleton: true
   end
 
   # Other scopes may use custom stacks.
