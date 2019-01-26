@@ -42,6 +42,7 @@ defmodule MetarMap.LightController do
 
     {:ok,
      %{
+       prefs: Preferences.load(),
        leds: %{},
        first_render: true,
        latest_stations: []
@@ -92,10 +93,11 @@ defmodule MetarMap.LightController do
   def handle_cast(:reload_preferences, state) do
     prefs = Preferences.load()
 
-    :ok = Blinkchain.set_brightness(@channel, prefs.brightness)
+    brightness = trunc(prefs.brightness_pct / 100 * 255)
+    :ok = Blinkchain.set_brightness(@channel, brightness)
     Blinkchain.render()
 
-    {:noreply, state}
+    {:noreply, %{state | prefs: prefs}}
   end
 
   @impl true
@@ -110,12 +112,10 @@ defmodule MetarMap.LightController do
   end
 
   def handle_info(:check_winds, state) do
-    prefs = Preferences.load()
-
-    if prefs.max_wind_kts > 0 do
+    if state.prefs.max_wind_kts > 0 do
       leds =
         Enum.reduce(state.latest_stations, state.leds, fn station, leds ->
-          if Station.get_max_wind(station) >= prefs.max_wind_kts and
+          if Station.get_max_wind(station) >= state.prefs.max_wind_kts and
                state.leds[station.index].transitions == [] do
             leds
             |> schedule_transition(station.index, 0, @fade_duration_ms, color(:off))
@@ -130,10 +130,10 @@ defmodule MetarMap.LightController do
           end
         end)
 
-      Process.send_after(self(), :check_winds, prefs.wind_flash_interval_ms)
+      Process.send_after(self(), :check_winds, trunc(state.prefs.wind_flash_interval_sec * 1000))
       {:noreply, %{state | leds: leds}}
     else
-      Process.send_after(self(), :check_winds, prefs.wind_flash_interval_ms)
+      Process.send_after(self(), :check_winds, trunc(state.prefs.wind_flash_interval_sec * 1000))
       {:noreply, state}
     end
   end

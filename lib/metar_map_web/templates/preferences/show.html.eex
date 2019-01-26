@@ -5,8 +5,8 @@
 
   <div class="mb-3">
     <label>LED brightness is</label>
-    <%= text_input(f, :brightness, class: "w-16") %> out of 255.
-    <%= error_tag(f, :brightness) %>
+    <%= text_input(f, :brightness_pct, class: "w-16") %>%.
+    <%= error_tag(f, :brightness_pct) %>
   </div>
 
   <div class="mb-3">
@@ -17,8 +17,8 @@
 
   <div class="mb-3">
     <label>Flash windy stations every</label>
-    <%= text_input(f, :wind_flash_interval_ms, class: "w-16") %> ms.
-    <%= error_tag(f, :wind_flash_interval_ms) %>
+    <%= text_input(f, :wind_flash_interval_sec, class: "w-16") %> seconds.
+    <%= error_tag(f, :wind_flash_interval_sec) %>
   </div>
 
   <%= submit "Save", class: "px-5 py-3 bg-blue text-white hover:bg-blue-dark" %>

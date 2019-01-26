@@ -5,9 +5,9 @@ defmodule MetarMap.Preferences do
 
   @primary_key false
   embedded_schema do
-    field :brightness, :integer, default: 64
+    field :brightness_pct, :integer, default: 25
     field :max_wind_kts, :integer, default: 20
-    field :wind_flash_interval_ms, :integer, default: 5000
+    field :wind_flash_interval_sec, :integer, default: 5
   end
 
   def load do
@@ -25,18 +25,18 @@ defmodule MetarMap.Preferences do
 
   def changeset(prefs, params \\ %{}) do
     permitted = [
-      :brightness,
+      :brightness_pct,
       :max_wind_kts,
-      :wind_flash_interval_ms
+      :wind_flash_interval_sec
     ]
 
     prefs
     |> cast(params, permitted)
-    |> validate_number(:brightness, greater_than_or_equal_to: 0, less_than_or_equal_to: 255)
+    |> validate_number(:brightness_pct, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:max_wind_kts, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
-    |> validate_number(:wind_flash_interval_ms,
-      greater_than_or_equal_to: 5_000,
-      less_than_or_equal_to: 60_000
+    |> validate_number(:wind_flash_interval_sec,
+      greater_than_or_equal_to: 5,
+      less_than_or_equal_to: 60
     )
     |> Map.put(:action, :update)
   end
