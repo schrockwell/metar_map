@@ -18,7 +18,7 @@ defmodule MetarMap.LedController do
   }
 
   defmodule State do
-    defstruct [:station, :timeline, :prefs, :flash_timer]
+    defstruct [:station, :timeline, :prefs, :flash_timer, :latest_color]
   end
 
   defmodule Transition do
@@ -125,8 +125,12 @@ defmodule MetarMap.LedController do
   def handle_info(:frame, state) do
     Process.send_after(self(), :frame, @frame_interval_ms)
     {color, timeline} = Timeline.interpolate(state.timeline)
-    Blinkchain.set_pixel({state.station.index, 0}, color)
-    {:noreply, %{state | timeline: timeline}}
+
+    if color != state.latest_color do
+      Blinkchain.set_pixel({state.station.index, 0}, color)
+    end
+
+    {:noreply, %{state | timeline: timeline, latest_color: color}}
   end
 
   defp update_station_color(state, opts \\ []) do
