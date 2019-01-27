@@ -101,6 +101,10 @@ defmodule MetarMap.LedController do
     {:noreply, state}
   end
 
+  def handle_info(:flash_winds, %{prefs: %{mode: mode}} = state) when mode != "flight_category" do
+    {:noreply, state}
+  end
+
   def handle_info(:flash_winds, state) do
     # Fade out and back in for windy stations
     next_timeline =
@@ -155,8 +159,8 @@ defmodule MetarMap.LedController do
     |> Station.get_max_wind()
     |> case do
       kts when kts in 0..5 -> @colors.green
-      kts when kts in 6..10 -> @colors.yellow
-      kts when kts in 11..15 -> @colors.orange
+      kts when kts in 6..15 -> MetarMap.blend(@colors.green, @colors.yellow, 6..15, kts)
+      kts when kts in 16..25 -> MetarMap.blend(@colors.yellow, @colors.red, 16..25, kts)
       _ -> @colors.red
     end
   end

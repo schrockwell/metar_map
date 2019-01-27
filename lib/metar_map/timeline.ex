@@ -70,25 +70,18 @@ defmodule MetarMap.Timeline do
             {color, transitions ++ [transition]}
 
           true ->
-            # Figure out the progress (0.0 to 1.0) and blend the colors, then apply it
-            progress = (now - transition.start_at) / (transition.end_at - transition.start_at)
-            color = blend(transition.start_color, transition.end_color, progress)
+            color =
+              MetarMap.blend(
+                transition.start_color,
+                transition.end_color,
+                transition.start_at..transition.end_at,
+                now
+              )
+
             {color, transitions ++ [transition]}
         end
       end)
 
     {color, %{timeline | transitions: next_transitions}}
-  end
-
-  # Naively blends two colors
-  defp blend(from_color, to_color, to_factor) do
-    from_factor = 1.0 - to_factor
-
-    %Color{
-      r: trunc(from_color.r * from_factor + to_color.r * to_factor),
-      g: trunc(from_color.g * from_factor + to_color.g * to_factor),
-      b: trunc(from_color.b * from_factor + to_color.b * to_factor),
-      w: trunc(from_color.w * from_factor + to_color.w * to_factor)
-    }
   end
 end
