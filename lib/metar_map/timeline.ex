@@ -70,12 +70,14 @@ defmodule MetarMap.Timeline do
     # If we have no upcoming transitions, then just assume it's the latest color. Otherwise, we
     # might be in a period where no transition has yet begun, so assume we are leading UP to that
     # transition and assume its starting color.
-    initial_acc =
+    initial_color =
       if timeline.transitions == [] do
-        {timeline.latest_color, []}
+        timeline.latest_color
       else
-        {hd(timeline.transitions).start_color}
+        hd(timeline.transitions).start_color
       end
+
+    initial_acc = {initial_color, []}
 
     {color, next_transitions} =
       Enum.reduce(timeline.transitions, initial_acc, fn transition, {color, transitions} ->
