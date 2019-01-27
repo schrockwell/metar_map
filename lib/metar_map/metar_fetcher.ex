@@ -1,5 +1,8 @@
 defmodule MetarMap.MetarFetcher do
   use GenServer
+  require Logger
+
+  alias MetarMap.{AviationWeather, Metar, LedController}
 
   @poll_interval_ms 60_000
 
@@ -10,63 +13,35 @@ defmodule MetarMap.MetarFetcher do
   @impl true
   def init(opts) do
     station_list = Keyword.fetch!(opts, :stations)
+    station_ids = Enum.map(station_list, & &1.id)
 
     send(self(), :poll)
 
-    stations =
-      station_list
-      |> Enum.map(&{&1.id, &1})
-      |> Map.new()
-
-    {:ok, %{stations: stations}}
+    {:ok, %{station_ids: station_ids}}
   end
 
   @impl true
   def handle_info(:poll, state) do
-    state = put_latest_metars(state)
-
-    for {_, station} <- state.stations, do: MetarMap.LedController.put_station(station)
-
-    Process.send_after(self(), :poll, @poll_interval_ms)
-    {:noreply, state}
-  end
-
-  defp put_latest_metars(state) do
-    state.stations
-    |> Map.keys()
-    |> MetarMap.AviationWeather.fetch_latest_metars()
+    state.station_ids
+    |> AviationWeather.fetch_latest_metars()
     |> case do
       {:ok, metars} ->
-        merge_metars(state, metars)
+        bounds = Metar.find_bounds(metars)
 
-      {:error, _error} ->
-        state
-    end
-  end
-
-  defp merge_metars(state, metars) do
-    metar_station_ids = Enum.map(metars, & &1.station_id)
-    config_station_ids = Map.keys(state.stations)
-    missing_station_ids = config_station_ids -- metar_station_ids
-    extra_station_ids = metar_station_ids -- config_station_ids
-
-    if !Enum.empty?(missing_station_ids) do
-      IO.puts("[MetarFetcher] WARNING: Could not find #{Enum.join(missing_station_ids, ", ")}")
-    end
-
-    if !Enum.empty?(extra_station_ids) do
-      IO.puts("[MetarFetcher] WARNING: Found extra #{Enum.join(extra_station_ids, ", ")}")
-    end
-
-    new_stations =
-      Enum.reduce(metars, state.stations, fn metar, stations ->
-        if Map.has_key?(stations, metar.station_id) do
-          Map.update!(stations, metar.station_id, &MetarMap.Station.put_metar(&1, metar))
-        else
-          stations
+        for metar <- metars do
+          if LedController.exists?(metar.station_id) do
+            LedController.put_metar(metar, bounds)
+          else
+            Logger.warn("[MetarFetcher] Could not find LED for #{metar.station_id}")
+          end
         end
-      end)
 
-    %{state | stations: new_stations}
+      _ ->
+        Logger.warn("[MetarFetcher] Error fetching METARs")
+    end
+
+    Process.send_after(self(), :poll, @poll_interval_ms)
+
+    {:noreply, state}
   end
 end

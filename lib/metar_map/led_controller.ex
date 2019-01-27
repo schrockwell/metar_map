@@ -7,6 +7,8 @@ defmodule MetarMap.LedController do
 
   @frame_interval_ms 20
   @fade_duration_ms 1500
+  @wipe_duration_ms 2000
+
   @colors %{
     off: %Color{r: 0, g: 0, b: 0},
     red: %Color{r: 0xFF, g: 0, b: 0},
@@ -18,19 +20,15 @@ defmodule MetarMap.LedController do
   }
 
   defmodule State do
-    defstruct [:station, :timeline, :prefs, :flash_timer, :latest_color]
-  end
-
-  defmodule Transition do
-    defstruct [:start_at, :start_color, :end_at, :end_color]
+    defstruct [:station, :timeline, :prefs, :flash_timer, :latest_color, :initialized]
   end
 
   def start_link(%Station{} = station, prefs) do
     GenServer.start_link(__MODULE__, {station, prefs}, name: name(station.id))
   end
 
-  def put_station(%Station{} = station) do
-    station |> name() |> GenServer.cast({:put_station, station})
+  def put_metar(metar, bounds) do
+    metar.station_id |> name() |> GenServer.cast({:put_metar, metar, bounds})
   end
 
   def put_prefs(prefs) do
@@ -39,6 +37,10 @@ defmodule MetarMap.LedController do
         GenServer.cast(pid, {:put_prefs, prefs})
       end
     end)
+  end
+
+  def exists?(id_or_station) do
+    !is_nil(id_or_station |> name() |> Process.whereis())
   end
 
   defp name(%Station{id: id}), do: name(id)
@@ -64,14 +66,23 @@ defmodule MetarMap.LedController do
      %State{
        station: station,
        prefs: prefs,
-       timeline: Timeline.init()
+       timeline: Timeline.init(),
+       initialized: false
      }}
   end
 
-  def handle_cast({:put_station, station}, state) do
-    Logger.info("[#{station.id}] #{Station.get_category(station)}")
+  def handle_cast({:put_metar, metar, bounds}, state) do
+    next_station =
+      state.station
+      |> MetarMap.Station.put_metar(metar)
+      |> put_station_position(metar, bounds)
 
-    {:noreply, update_station_color(%{state | station: station})}
+    Logger.info("[#{next_station.id}] #{Station.get_category(next_station)}")
+
+    next_state = %{state | station: next_station, initialized: true}
+    delay_ms = if state.initialized, do: 0, else: wipe_delay_ms(next_state)
+
+    {:noreply, update_station_color(next_state, delay_ms: delay_ms)}
   end
 
   def handle_cast({:put_prefs, new_prefs}, state) do
@@ -80,7 +91,7 @@ defmodule MetarMap.LedController do
       if new_prefs.mode != state.prefs.mode do
         state.timeline
         |> Timeline.abort()
-        |> Timeline.append(@fade_duration_ms, @colors.off)
+        |> Timeline.append(@fade_duration_ms, @colors.off, min_delay_ms: wipe_delay_ms(state))
         |> Timeline.append(@fade_duration_ms, station_color(state.station, new_prefs.mode))
       else
         state.timeline
@@ -133,7 +144,7 @@ defmodule MetarMap.LedController do
     {:noreply, %{state | timeline: timeline, latest_color: color}}
   end
 
-  defp update_station_color(state, opts \\ []) do
+  defp update_station_color(state, opts) do
     next_color = station_color(state.station, state.prefs.mode)
 
     if next_color != state.timeline.latest_color do
@@ -168,4 +179,23 @@ defmodule MetarMap.LedController do
       _ -> @colors.red
     end
   end
+
+  defp wipe_delay_ms(%{station: %{position: nil}}), do: 0
+
+  defp wipe_delay_ms(%{station: %{position: {_x, y}}}) do
+    trunc(@wipe_duration_ms * y)
+  end
+
+  defp put_station_position(
+         %{position: nil} = station,
+         metar,
+         {{min_lat, max_lat}, {min_lon, max_lon}}
+       ) do
+    x_position = MetarMap.normalize(min_lon, max_lon, metar.longitude)
+    y_position = MetarMap.normalize(min_lat, max_lat, metar.latitude)
+
+    %{station | position: {x_position, y_position}}
+  end
+
+  defp put_station_position(station, _metar, _bounds), do: station
 end

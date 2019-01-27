@@ -1,10 +1,11 @@
 defmodule MetarMap.Station do
-  defstruct [:id, :index, :metar]
+  defstruct [:id, :index, :metar, :position]
 
   def init(id, index) do
     %__MODULE__{
       id: id,
       index: index,
+      position: nil,
       metar: nil
     }
   end

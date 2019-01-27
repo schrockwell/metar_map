@@ -60,7 +60,9 @@ defmodule MetarMap.AviationWeather do
       station_id: ~x"./station_id/text()"s,
       category: ~x"./flight_category/text()"s |> transform_by(&normalize_category/1),
       wind_speed_kt: ~x"./wind_speed_kt/text()"s |> transform_by(&normalize_integer/1),
-      wind_gust_kt: ~x"./wind_gust_kt/text()"s |> transform_by(&normalize_integer/1)
+      wind_gust_kt: ~x"./wind_gust_kt/text()"s |> transform_by(&normalize_integer/1),
+      latitude: ~x"latitude/text()"f,
+      longitude: ~x"longitude/text()"f
     )
     |> Enum.map(&struct(MetarMap.Metar, &1))
   end

@@ -27,7 +27,13 @@ defmodule MetarMap do
   Naively blends two colors
   """
   def blend(from_color, to_color, %Range{} = range, value) do
-    factor = (value - range.first) / (range.last - range.first)
-    blend(from_color, to_color, factor)
+    blend(from_color, to_color, normalize(range.first, range.last, value))
+  end
+
+  @doc """
+  Normalize a value from 0.0 to 1.0.
+  """
+  def normalize(min, max, value) do
+    (value - min) / (max - min)
   end
 end
