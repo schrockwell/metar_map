@@ -1,14 +1,14 @@
 defmodule MetarMap.Timeline do
   alias Blinkchain.Color
 
-  defstruct transitions: [], latest_color: %Color{r: 0, g: 0, b: 0, w: 0}, point: {0, 0}
+  defstruct transitions: [], latest_color: %Color{r: 0, g: 0, b: 0, w: 0}
 
   defmodule Transition do
     defstruct [:start_at, :start_color, :end_at, :end_color]
   end
 
-  def init(point, start_color \\ %Color{r: 0, g: 0, b: 0, w: 0}) do
-    %__MODULE__{point: point, latest_color: start_color}
+  def init(start_color \\ %Color{r: 0, g: 0, b: 0, w: 0}) do
+    %__MODULE__{latest_color: start_color}
   end
 
   defp now_ms, do: :erlang.monotonic_time(:millisecond)
@@ -54,6 +54,8 @@ defmodule MetarMap.Timeline do
 
   Returns a tuple containing the color and the updated timeline.
   """
+  def interpolate(%{transitions: [], latest_color: color}), do: {color, []}
+
   def interpolate(timeline) do
     now = now_ms()
     initial_acc = {timeline.latest_color, []}

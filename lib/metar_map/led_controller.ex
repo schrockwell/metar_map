@@ -57,8 +57,6 @@ defmodule MetarMap.LedController do
   def init({station, prefs}) do
     {:ok, _} = Registry.register(__MODULE__.Registry, nil, station.id)
 
-    blinkchain_point = {station.index, 0}
-
     send(self(), :frame)
     send(self(), :flash_winds)
 
@@ -66,7 +64,7 @@ defmodule MetarMap.LedController do
      %State{
        station: station,
        prefs: prefs,
-       timeline: Timeline.init(blinkchain_point)
+       timeline: Timeline.init()
      }}
   end
 
@@ -126,6 +124,7 @@ defmodule MetarMap.LedController do
     Process.send_after(self(), :frame, @frame_interval_ms)
     {color, timeline} = Timeline.interpolate(state.timeline)
 
+    # For performance - only update if necessary
     if color != state.latest_color do
       Blinkchain.set_pixel({state.station.index, 0}, color)
     end
