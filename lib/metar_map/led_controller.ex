@@ -78,7 +78,16 @@ defmodule MetarMap.LedController do
       |> MetarMap.Station.put_metar(metar)
       |> put_station_position(metar, bounds)
 
-    Logger.info("[#{next_station.id}] #{Station.get_category(next_station)}")
+    Logger.info(
+      Enum.join(
+        [
+          "[#{next_station.id}]",
+          next_station |> Station.get_category() |> Atom.to_string() |> String.upcase(),
+          "#{Station.get_max_wind(next_station)} kts"
+        ],
+        " "
+      )
+    )
 
     next_state = %{state | station: next_station, initialized: true}
     delay_ms = if state.initialized, do: 0, else: wipe_delay_ms(next_state)
@@ -176,8 +185,8 @@ defmodule MetarMap.LedController do
     |> Station.get_max_wind()
     |> case do
       kts when kts in 0..5 -> @colors.green
-      kts when kts in 6..15 -> MetarMap.blend(@colors.green, @colors.yellow, 6..15, kts)
-      kts when kts in 16..25 -> MetarMap.blend(@colors.yellow, @colors.red, 16..25, kts)
+      kts when kts in 6..10 -> MetarMap.blend(@colors.green, @colors.yellow, 6..15, kts)
+      kts when kts in 11..25 -> MetarMap.blend(@colors.yellow, @colors.red, 16..25, kts)
       kts when kts in 26..35 -> MetarMap.blend(@colors.red, @colors.purple, 26..35, kts)
       kts when kts in 36..50 -> MetarMap.blend(@colors.purple, @colors.white, 36..50, kts)
       _ -> @colors.white
