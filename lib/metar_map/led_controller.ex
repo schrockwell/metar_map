@@ -185,8 +185,8 @@ defmodule MetarMap.LedController do
     |> Station.get_max_wind()
     |> case do
       kts when kts in 0..5 -> @colors.green
-      kts when kts in 6..10 -> MetarMap.blend(@colors.green, @colors.yellow, 6..15, kts)
-      kts when kts in 11..25 -> MetarMap.blend(@colors.yellow, @colors.red, 16..25, kts)
+      kts when kts in 6..10 -> MetarMap.blend(@colors.green, @colors.yellow, 6..10, kts)
+      kts when kts in 11..25 -> MetarMap.blend(@colors.yellow, @colors.red, 11..25, kts)
       kts when kts in 26..35 -> MetarMap.blend(@colors.red, @colors.purple, 26..35, kts)
       kts when kts in 36..50 -> MetarMap.blend(@colors.purple, @colors.white, 36..50, kts)
       _ -> @colors.white
