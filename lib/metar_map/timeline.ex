@@ -37,6 +37,13 @@ defmodule MetarMap.Timeline do
     %{timeline | transitions: timeline.transitions ++ [transition], latest_color: end_color}
   end
 
+  @doc """
+  Immediately stops the timeline.
+  """
+  def abort(timeline) do
+    %{timeline | transitions: []}
+  end
+
   # Returns the earliest time a transition could begin
   defp find_start_at(timeline, now, min_delay_ms) do
     earliest_start = now + min_delay_ms

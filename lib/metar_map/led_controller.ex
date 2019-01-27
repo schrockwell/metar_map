@@ -79,6 +79,7 @@ defmodule MetarMap.LedController do
     timeline =
       if new_prefs.mode != state.prefs.mode do
         state.timeline
+        |> Timeline.abort()
         |> Timeline.append(@fade_duration_ms, @colors.off)
         |> Timeline.append(@fade_duration_ms, station_color(state.station, new_prefs.mode))
       else
