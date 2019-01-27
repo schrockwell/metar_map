@@ -16,7 +16,8 @@ defmodule MetarMap.LedController do
     yellow: %Color{r: 0xFF, g: 0xFF, b: 0},
     green: %Color{r: 0, g: 0xFF, b: 0},
     blue: %Color{r: 0, g: 0, b: 0xFF},
-    purple: %Color{r: 0xFF, g: 0, b: 0xFF}
+    purple: %Color{r: 0xFF, g: 0, b: 0xFF},
+    white: %Color{r: 0xFF, g: 0xFF, b: 0xFF}
   }
 
   defmodule State do
@@ -177,7 +178,9 @@ defmodule MetarMap.LedController do
       kts when kts in 0..5 -> @colors.green
       kts when kts in 6..15 -> MetarMap.blend(@colors.green, @colors.yellow, 6..15, kts)
       kts when kts in 16..25 -> MetarMap.blend(@colors.yellow, @colors.red, 16..25, kts)
-      _ -> @colors.red
+      kts when kts in 26..35 -> MetarMap.blend(@colors.red, @colors.purple, 26..35, kts)
+      kts when kts in 36..50 -> MetarMap.blend(@colors.purple, @colors.white, 36..50, kts)
+      _ -> @colors.white
     end
   end
 
