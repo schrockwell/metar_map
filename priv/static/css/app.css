@@ -1,6 +1,7 @@
 /* This file is for your main application css. */
 
-input {
+input,
+select {
   border: 1px solid #ccc;
   padding: 7px 10px;
 }

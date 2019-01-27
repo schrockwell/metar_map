@@ -8,6 +8,7 @@ defmodule MetarMap.Preferences do
     field :brightness_pct, :integer, default: 25
     field :max_wind_kts, :integer, default: 20
     field :wind_flash_interval_sec, :integer, default: 5
+    field :mode, :string, default: "flight_category"
   end
 
   def load do
@@ -27,11 +28,13 @@ defmodule MetarMap.Preferences do
     permitted = [
       :brightness_pct,
       :max_wind_kts,
-      :wind_flash_interval_sec
+      :wind_flash_interval_sec,
+      :mode
     ]
 
     prefs
     |> cast(params, permitted)
+    |> validate_inclusion(:mode, ["flight_category", "wind_speed"])
     |> validate_number(:brightness_pct, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:max_wind_kts, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:wind_flash_interval_sec,
@@ -51,7 +54,8 @@ defmodule MetarMap.Preferences do
           |> apply_changes()
           |> save()
 
-        MetarMap.LightController.reload_preferences()
+        MetarMap.StripController.put_prefs(prefs)
+        MetarMap.LedController.put_prefs(prefs)
 
         {:ok, prefs}
 

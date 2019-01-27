@@ -4,10 +4,18 @@
  <input name="_method" type="hidden" value="patch" />
 
   <div class="mb-3">
+    <label>The LEDs display</label>
+    <%= select(f, :mode, [{"flight category", "flight_category"}, {"wind speed", "wind_speed"}]) %> .
+    <%= error_tag(f, :mode) %>
+  </div>
+
+  <div class="mb-3">
     <label>LED brightness is</label>
     <%= text_input(f, :brightness_pct, class: "w-16") %> %.
     <%= error_tag(f, :brightness_pct) %>
   </div>
+
+  <h3 class="mt-12 mb-2">When showing flight category…</h3>
 
   <div class="mb-3">
     <label>Flash a station when its winds are at least</label>

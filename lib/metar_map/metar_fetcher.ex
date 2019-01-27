@@ -8,18 +8,13 @@ defmodule MetarMap.MetarFetcher do
   end
 
   @impl true
-  def init(_opts) do
-    filename = Application.get_env(:metar_map, :stations)
-
-    if !filename do
-      raise "Missing: `config :metar_map, :stations, \"/some/path.exs\""
-    end
+  def init(opts) do
+    station_list = Keyword.fetch!(opts, :stations)
 
     send(self(), :poll)
 
     stations =
-      filename
-      |> MetarMap.Station.list()
+      station_list
       |> Enum.map(&{&1.id, &1})
       |> Map.new()
 
@@ -30,10 +25,7 @@ defmodule MetarMap.MetarFetcher do
   def handle_info(:poll, state) do
     state = put_latest_metars(state)
 
-    state.stations
-    |> Map.values()
-    |> Enum.sort_by(& &1.index)
-    |> MetarMap.LightController.render_stations()
+    for {_, station} <- state.stations, do: MetarMap.LedController.put_station(station)
 
     Process.send_after(self(), :poll, @poll_interval_ms)
     {:noreply, state}
