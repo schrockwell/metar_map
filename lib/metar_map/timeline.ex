@@ -38,10 +38,11 @@ defmodule MetarMap.Timeline do
   end
 
   @doc """
-  Immediately stops the timeline.
+  Immediately stops the timeline and freezes it to the latest inteprolated color.
   """
   def abort(timeline) do
-    %{timeline | transitions: []}
+    {color, timeline} = interpolate(timeline)
+    %{timeline | transitions: [], latest_color: color}
   end
 
   # Returns the earliest time a transition could begin
