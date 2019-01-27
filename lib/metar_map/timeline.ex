@@ -54,7 +54,7 @@ defmodule MetarMap.Timeline do
 
   Returns a tuple containing the color and the updated timeline.
   """
-  def interpolate(%{transitions: [], latest_color: color}), do: {color, []}
+  def interpolate(%{transitions: [], latest_color: color} = timeline), do: {color, timeline}
 
   def interpolate(timeline) do
     now = now_ms()
