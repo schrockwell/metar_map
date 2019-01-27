@@ -66,7 +66,16 @@ defmodule MetarMap.Timeline do
 
   def interpolate(timeline) do
     now = now_ms()
-    initial_acc = {timeline.latest_color, []}
+
+    # If we have no upcoming transitions, then just assume it's the latest color. Otherwise, we
+    # might be in a period where no transition has yet begun, so assume we are leading UP to that
+    # transition and assume its starting color.
+    initial_acc =
+      if timeline.transitions == [] do
+        {timeline.latest_color, []}
+      else
+        {hd(timeline.transitions).start_color}
+      end
 
     {color, next_transitions} =
       Enum.reduce(timeline.transitions, initial_acc, fn transition, {color, transitions} ->
