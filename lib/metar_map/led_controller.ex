@@ -202,6 +202,19 @@ defmodule MetarMap.LedController do
     end
   end
 
+  defp station_color(station, "ceiling") do
+    station
+    |> Station.get_ceiling()
+    |> case do
+      nil -> @colors.green
+      ft when ft in 0..1000 -> @colors.red
+      ft when ft in 1000..3000 -> MetarMap.blend(@colors.red, @colors.orange, 1000..3000, ft)
+      ft when ft in 3000..5000 -> MetarMap.blend(@colors.orange, @colors.yellow, 3000..5000, ft)
+      ft when ft in 5000..10000 -> MetarMap.blend(@colors.yellow, @colors.green, 5000..10000, ft)
+      _ -> @colors.green
+    end
+  end
+
   defp wipe_delay_ms(%{station: %{position: nil}}), do: 0
 
   defp wipe_delay_ms(%{station: %{position: {_x, y}}}) do

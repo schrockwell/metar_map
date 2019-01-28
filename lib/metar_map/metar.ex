@@ -6,7 +6,8 @@ defmodule MetarMap.Metar do
     :wind_gust_kt,
     :wind_dir_degrees,
     :latitude,
-    :longitude
+    :longitude,
+    :sky_conditions
   ]
 
   @doc """

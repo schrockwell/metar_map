@@ -34,7 +34,7 @@ defmodule MetarMap.Preferences do
 
     prefs
     |> cast(params, permitted)
-    |> validate_inclusion(:mode, ["flight_category", "wind_speed"])
+    |> validate_inclusion(:mode, ["flight_category", "wind_speed", "ceiling"])
     |> validate_number(:brightness_pct, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:max_wind_kts, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:wind_flash_interval_sec,

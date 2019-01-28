@@ -21,6 +21,18 @@ defmodule MetarMap.Station do
 
   def put_metar(%__MODULE__{} = station, metar), do: %{station | metar: metar}
 
+  def get_ceiling(%__MODULE__{metar: nil}), do: nil
+
+  def get_ceiling(%__MODULE__{metar: %{sky_conditions: sky_conditions}}) do
+    sky_conditions
+    |> Enum.sort_by(& &1.base_agl)
+    |> Enum.find(&(&1.cover in ["BKN", "OVC"]))
+    |> case do
+      nil -> nil
+      %{base_agl: base_agl} -> base_agl
+    end
+  end
+
   def list(filename) do
     filename
     |> Code.eval_file()

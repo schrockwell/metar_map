@@ -57,12 +57,17 @@ defmodule MetarMap.AviationWeather do
     body
     |> parse()
     |> xpath(~x"//METAR"l,
-      station_id: ~x"./station_id/text()"s,
-      category: ~x"./flight_category/text()"s |> transform_by(&normalize_category/1),
-      wind_speed_kt: ~x"./wind_speed_kt/text()"s |> transform_by(&normalize_integer/1),
-      wind_gust_kt: ~x"./wind_gust_kt/text()"s |> transform_by(&normalize_integer/1),
+      station_id: ~x"station_id/text()"s,
+      category: ~x"flight_category/text()"s |> transform_by(&normalize_category/1),
+      wind_speed_kt: ~x"wind_speed_kt/text()"s |> transform_by(&normalize_integer/1),
+      wind_gust_kt: ~x"wind_gust_kt/text()"s |> transform_by(&normalize_integer/1),
       latitude: ~x"latitude/text()"f,
-      longitude: ~x"longitude/text()"f
+      longitude: ~x"longitude/text()"f,
+      sky_conditions: [
+        ~x"sky_condition"l,
+        cover: ~x"@sky_cover"S,
+        base_agl: ~x"@cloud_base_ft_agl"I
+      ]
     )
     |> Enum.map(&struct(MetarMap.Metar, &1))
   end
