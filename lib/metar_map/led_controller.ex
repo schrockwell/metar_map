@@ -121,30 +121,13 @@ defmodule MetarMap.LedController do
     {:noreply, %{state | prefs: new_prefs, flash_timer: nil, timeline: timeline}}
   end
 
-  def handle_info(:flash_winds, %{prefs: %{max_wind_kts: 0}} = state) do
-    {:noreply, state}
-  end
-
-  def handle_info(:flash_winds, %{prefs: %{mode: mode}} = state) when mode != "flight_category" do
-    {:noreply, state}
-  end
-
   def handle_info(:flash_winds, state) do
-    # Fade out and back in for windy stations
-    next_timeline =
-      if Station.get_max_wind(state.station) >= state.prefs.max_wind_kts do
-        state.timeline
-        |> Timeline.append(@fade_duration_ms, @colors.off)
-        |> Timeline.append(@fade_duration_ms, station_color(state.station, state.prefs.mode))
-      else
-        state.timeline
-      end
+    state = add_wind_flash_to_timeline(state)
 
     next_flash_interval = 2 * @fade_duration_ms + state.prefs.wind_flash_interval_sec * 1000
-
     flash_timer = Process.send_after(self(), :flash_winds, next_flash_interval)
 
-    {:noreply, %{state | timeline: next_timeline, flash_timer: flash_timer}}
+    {:noreply, %{state | flash_timer: flash_timer}}
   end
 
   def handle_info(:frame, state) do
@@ -161,6 +144,21 @@ defmodule MetarMap.LedController do
 
   def terminate(_, state) do
     Blinkchain.set_pixel(state.pixel, @colors.off)
+  end
+
+  defp add_wind_flash_to_timeline(state) do
+    next_timeline =
+      if state.prefs.mode == "flight_category" and state.prefs.max_wind_kts > 0 and
+           Station.get_max_wind(state.station) >= state.prefs.max_wind_kts do
+        # Fade out and back in for windy stations
+        state.timeline
+        |> Timeline.append(@fade_duration_ms, @colors.off)
+        |> Timeline.append(@fade_duration_ms, station_color(state.station, state.prefs.mode))
+      else
+        state.timeline
+      end
+
+    %{state | timeline: next_timeline}
   end
 
   defp update_station_color(state, opts) do
