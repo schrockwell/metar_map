@@ -1,0 +1,17 @@
+[Unit]
+Description=METAR Map
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Environment=MIX_ENV=prod PORT=80 CROSSCOMPILE=1 PIN=18 COUNT=50
+WorkingDirectory=/root/metar_map
+ExecStartPre=/usr/bin/git pull
+ExecStartPre=/usr/bin/mix deps.get
+ExecStartPre=/usr/bin/mix phx.digest
+ExecStart=/usr/bin/mix phx.server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

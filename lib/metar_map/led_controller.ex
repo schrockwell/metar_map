@@ -21,7 +21,7 @@ defmodule MetarMap.LedController do
   }
 
   defmodule State do
-    defstruct [:station, :timeline, :prefs, :flash_timer, :latest_color, :initialized]
+    defstruct [:station, :timeline, :prefs, :flash_timer, :latest_color, :initialized, :pixel]
   end
 
   def start_link(%Station{} = station, prefs) do
@@ -68,7 +68,8 @@ defmodule MetarMap.LedController do
        station: station,
        prefs: prefs,
        timeline: Timeline.init(),
-       initialized: false
+       initialized: false,
+       pixel: {station.index, 0}
      }}
   end
 
@@ -153,10 +154,14 @@ defmodule MetarMap.LedController do
 
     # For performance - only update if necessary
     if color != state.latest_color do
-      Blinkchain.set_pixel({state.station.index, 0}, color)
+      Blinkchain.set_pixel(state.pixel, color)
     end
 
     {:noreply, %{state | timeline: timeline, latest_color: color}}
+  end
+
+  def terminate(_, state) do
+    Blinkchain.set_pixel(state.pixel, @colors.off)
   end
 
   defp update_station_color(state, opts) do
