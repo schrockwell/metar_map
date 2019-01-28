@@ -31,6 +31,18 @@ defmodule MetarMap do
   end
 
   @doc """
+  Changes a color's brightness.
+  """
+  def brighten(color, rate) do
+    %Color{
+      r: (color.r * rate) |> min(255) |> max(0),
+      g: (color.g * rate) |> min(255) |> max(0),
+      b: (color.b * rate) |> min(255) |> max(0),
+      w: (color.w * rate) |> min(255) |> max(0)
+    }
+  end
+
+  @doc """
   Normalize a value from 0.0 to 1.0.
   """
   def normalize(min, max, value) do

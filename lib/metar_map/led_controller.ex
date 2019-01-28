@@ -21,7 +21,16 @@ defmodule MetarMap.LedController do
   }
 
   defmodule State do
-    defstruct [:station, :timeline, :prefs, :flash_timer, :latest_color, :initialized, :pixel]
+    defstruct [
+      :station,
+      :timeline,
+      :prefs,
+      :flash_timer,
+      :latest_color,
+      :initialized,
+      :pixel,
+      :flicker
+    ]
   end
 
   def start_link(%Station{} = station, prefs) do
@@ -134,12 +143,23 @@ defmodule MetarMap.LedController do
     Process.send_after(self(), :frame, @frame_interval_ms)
     {color, timeline} = Timeline.interpolate(state.timeline)
 
+    # Maybe toggle the flickering if it's windy
+    next_flicker =
+      cond do
+        !is_windy?(state) -> false
+        :rand.uniform() < 0.1 -> !state.flicker
+        true -> state.flicker
+      end
+
+    # If flickering, dim it to 80%
+    color = if next_flicker, do: MetarMap.brighten(color, 0.8), else: color
+
     # For performance - only update if necessary
     if color != state.latest_color do
       Blinkchain.set_pixel(state.pixel, color)
     end
 
-    {:noreply, %{state | timeline: timeline, latest_color: color}}
+    {:noreply, %{state | timeline: timeline, latest_color: color, flicker: next_flicker}}
   end
 
   def terminate(_, state) do
@@ -147,16 +167,18 @@ defmodule MetarMap.LedController do
   end
 
   defp add_wind_flash_to_timeline(state) do
-    next_timeline =
-      if state.prefs.mode == "flight_category" and state.prefs.max_wind_kts > 0 and
-           Station.get_max_wind(state.station) >= state.prefs.max_wind_kts do
-        # Fade out and back in for windy stations
-        state.timeline
-        |> Timeline.append(@fade_duration_ms, @colors.off)
-        |> Timeline.append(@fade_duration_ms, station_color(state.station, state.prefs.mode))
-      else
-        state.timeline
-      end
+    # TEMP
+    next_timeline = state.timeline
+
+    # next_timeline =
+    #   if is_windy?(state) do
+    #     # Fade out and back in for windy stations
+    #     state.timeline
+    #     |> Timeline.append(@fade_duration_ms, @colors.off)
+    #     |> Timeline.append(@fade_duration_ms, station_color(state.station, state.prefs.mode))
+    #   else
+    #     state.timeline
+    #   end
 
     %{state | timeline: next_timeline}
   end
@@ -231,4 +253,9 @@ defmodule MetarMap.LedController do
   end
 
   defp put_station_position(station, _metar, _bounds), do: station
+
+  defp is_windy?(state) do
+    state.prefs.mode == "flight_category" and state.prefs.max_wind_kts > 0 and
+      Station.get_max_wind(state.station) >= state.prefs.max_wind_kts
+  end
 end
