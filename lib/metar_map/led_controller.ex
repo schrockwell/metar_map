@@ -147,12 +147,12 @@ defmodule MetarMap.LedController do
     next_flicker =
       cond do
         !is_windy?(state) -> false
-        :rand.uniform() < 0.1 -> !state.flicker
+        :rand.uniform() < 0.2 -> !state.flicker
         true -> state.flicker
       end
 
     # If flickering, dim it to 80%
-    color = if next_flicker, do: MetarMap.brighten(color, 0.5), else: color
+    color = if next_flicker, do: MetarMap.brighten(color, 0.75), else: color
 
     # For performance - only update if necessary
     if color != state.latest_color do
