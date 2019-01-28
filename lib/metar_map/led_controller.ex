@@ -108,14 +108,13 @@ defmodule MetarMap.LedController do
         state.timeline
       end
 
-    # Cancel the previous wind check timer, then start it up again with the new interval
-    if state.flash_timer do
-      Process.cancel_timer(state.flash_timer)
-    end
-
     # Immediately flash if the wind settings have changed
     if {new_prefs.max_wind_kts, new_prefs.wind_flash_interval_sec} !=
          {state.prefs.max_wind_kts, state.prefs.wind_flash_interval_sec} do
+      if state.flash_timer do
+        Process.cancel_timer(state.flash_timer)
+      end
+
       send(self(), :flash_winds)
     end
 
