@@ -58,15 +58,28 @@ apt update
 apt upgrade -y
 apt install git python3-gpiozero vim elixir -y
 
+# Get the repo (still as root)
+cd /root
+
 mix local.hex --force
 mix local.rebar --force
 
-# Get the repo
+export PORT=80
+export MIX_ENV=prod
+export CROSSCOMPILE=1 # Hack for Blinkchain
+
 git clone https://github.com/schrockwell/metar_map.git
 cd metar_map
 mix deps.get
-CROSSCOMPILE=1 mix compile # Hack for Blinkchain
+mix compile
+mix phx.digest
+
+# Run it!
+mix phx.server
 ```
+
+Now install the systemd service at `/etc/systemd/system/metar-map.service`. There's an example in
+`priv/`.
 
 ## Helpful Stuff
 

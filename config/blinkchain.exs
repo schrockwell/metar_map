@@ -261,16 +261,18 @@ gamma = [
   255
 ]
 
+count = String.to_integer(System.get_env("COUNT") || "50")
+pin = String.to_integer(System.get_env("PIN") || "18")
+
 config :blinkchain, :channel0,
-  pin: 18,
+  pin: pin,
   type: :rgb,
-  brightness: 65,
   gamma: gamma,
   arrangement: [
     %{
       type: :strip,
       origin: {0, 0},
-      count: 50,
+      count: count,
       direction: :right
     }
   ]

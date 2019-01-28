@@ -38,7 +38,7 @@ defmodule MetarMap.Preferences do
     |> validate_number(:brightness_pct, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:max_wind_kts, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:wind_flash_interval_sec,
-      greater_than_or_equal_to: 5,
+      greater_than_or_equal_to: 1,
       less_than_or_equal_to: 60
     )
     |> Map.put(:action, :update)

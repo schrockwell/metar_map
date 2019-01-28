@@ -112,10 +112,13 @@ defmodule MetarMap.LedController do
       Process.cancel_timer(state.flash_timer)
     end
 
-    flash_timer =
-      Process.send_after(self(), :flash_winds, new_prefs.wind_flash_interval_sec * 1000)
+    # Immediately flash if the wind settings have changed
+    if {new_prefs.max_wind_kts, new_prefs.wind_flash_interval_sec} !=
+         {state.prefs.max_wind_kts, state.prefs.wind_flash_interval_sec} do
+      send(self(), :flash_winds)
+    end
 
-    {:noreply, %{state | prefs: new_prefs, flash_timer: flash_timer, timeline: timeline}}
+    {:noreply, %{state | prefs: new_prefs, flash_timer: nil, timeline: timeline}}
   end
 
   def handle_info(:flash_winds, %{prefs: %{max_wind_kts: 0}} = state) do
@@ -137,8 +140,9 @@ defmodule MetarMap.LedController do
         state.timeline
       end
 
-    flash_timer =
-      Process.send_after(self(), :flash_winds, state.prefs.wind_flash_interval_sec * 1000)
+    next_flash_interval = 2 * @fade_duration_ms + state.prefs.wind_flash_interval_sec * 1000
+
+    flash_timer = Process.send_after(self(), :flash_winds, next_flash_interval)
 
     {:noreply, %{state | timeline: next_timeline, flash_timer: flash_timer}}
   end
