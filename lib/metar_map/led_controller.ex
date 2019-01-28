@@ -218,7 +218,8 @@ defmodule MetarMap.LedController do
   defp wipe_delay_ms(%{station: %{position: nil}}), do: 0
 
   defp wipe_delay_ms(%{station: %{position: {_x, y}}}) do
-    trunc(@wipe_duration_ms * y)
+    # Wipe downwards, so invert y-axis
+    trunc(@wipe_duration_ms * (1.0 - y))
   end
 
   defp put_station_position(
