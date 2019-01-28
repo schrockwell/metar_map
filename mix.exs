@@ -40,7 +40,9 @@ defmodule MetarMap.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:sweet_xml, "~> 0.6.5"},
-      {:blinkchain, "~> 1.0-rc"},
+      # {:blinkchain, "~> 1.0-rc"},
+      {:blinkchain,
+       git: "https://github.com/valiot/blinkchain.git", ref: "master-blinkchain", submodules: true},
       {:httpoison, "~> 1.5"},
       {:phoenix_ecto, "~> 4.0"}
     ]
