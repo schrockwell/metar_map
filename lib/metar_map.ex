@@ -35,10 +35,10 @@ defmodule MetarMap do
   """
   def brighten(color, rate) do
     %Color{
-      r: (color.r * rate) |> min(255) |> max(0),
-      g: (color.g * rate) |> min(255) |> max(0),
-      b: (color.b * rate) |> min(255) |> max(0),
-      w: (color.w * rate) |> min(255) |> max(0)
+      r: (color.r * rate) |> min(255) |> max(0) |> trunc(),
+      g: (color.g * rate) |> min(255) |> max(0) |> trunc(),
+      b: (color.b * rate) |> min(255) |> max(0) |> trunc(),
+      w: (color.w * rate) |> min(255) |> max(0) |> trunc()
     }
   end
 

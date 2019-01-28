@@ -152,7 +152,7 @@ defmodule MetarMap.LedController do
       end
 
     # If flickering, dim it to 80%
-    color = if next_flicker, do: MetarMap.brighten(color, 0.8), else: color
+    color = if next_flicker, do: MetarMap.brighten(color, 0.5), else: color
 
     # For performance - only update if necessary
     if color != state.latest_color do
