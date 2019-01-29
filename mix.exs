@@ -44,7 +44,8 @@ defmodule MetarMap.MixProject do
       {:blinkchain,
        git: "https://github.com/valiot/blinkchain.git", ref: "master-blinkchain", submodules: true},
       {:httpoison, "~> 1.5"},
-      {:phoenix_ecto, "~> 4.0"}
+      {:phoenix_ecto, "~> 4.0"},
+      {:circuits_gpio, "~> 0.3"}
     ]
   end
 end

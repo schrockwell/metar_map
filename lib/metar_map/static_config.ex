@@ -1,5 +1,5 @@
 defmodule MetarMap.StaticConfig do
-  defstruct [:stations]
+  defstruct [:stations, :ldr_pin]
 
   def read(filename) do
     config_map =
@@ -16,7 +16,8 @@ defmodule MetarMap.StaticConfig do
       end)
 
     %__MODULE__{
-      stations: stations
+      stations: stations,
+      ldr_pin: config_map[:ldr_pin]
     }
   end
 end

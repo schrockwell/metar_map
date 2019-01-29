@@ -19,6 +19,13 @@ defmodule MetarMap.Application do
         MetarMapWeb.Endpoint
       ])
 
+    children =
+      if static_config.ldr_pin do
+        [{MetarMap.LdrSensor, gpio_pin: static_config.ldr_pin}] ++ children
+      else
+        children
+      end
+
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: MetarMap.Supervisor]
