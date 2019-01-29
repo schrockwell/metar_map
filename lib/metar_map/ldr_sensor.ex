@@ -26,13 +26,14 @@ defmodule MetarMap.LdrSensor do
     {:ok,
      %{
        gpio: gpio,
-       running_average: 0,
-       samples_counted: 0
+       pulsed: false,
+       pulsed_at_ns: nil,
+       rise_time_ms: nil
      }}
   end
 
   def handle_cast(:read, _, state) do
-    {:reply, state.running_average, state}
+    {:reply, state.rise_time_ms, state}
   end
 
   def handle_info(:poll, state) do
@@ -45,7 +46,7 @@ defmodule MetarMap.LdrSensor do
 
     Process.send_after(self(), :end_pulse, @pulse_duration_ms)
 
-    {:noreply, state}
+    {:noreply, %{state | pulsed: true}}
   end
 
   def handle_info(:end_pulse, state) do
@@ -56,8 +57,22 @@ defmodule MetarMap.LdrSensor do
     {:noreply, state}
   end
 
-  def handle_info({:gpio, _pin_number, timestamp, value}, state) do
-    IO.puts("Got transition to #{value} at #{timestamp}")
+  # When transitioning to 0 afer pulsing, record the timestamp
+  def handle_info({:gpio, _pin_number, timestamp_ns, 0}, %{pulsed: true} = state) do
+    {:noreply, %{state | pulsed_at_ns: timestamp_ns}}
+  end
+
+  # When transitioning to 1 after pulsing, record the timestamp and determine the rise time
+  def handle_info({:gpio, _pin_number, timestamp_ns, 1}, %{pulsed: true} = state) do
+    rise_time_ms = trunc((timestamp_ns - state.pulsed_at_ns) / 1_000_000) - @pulse_duration_ms
+
+    IO.puts("Rise time: #{rise_time_ms} ms")
+
+    {:noreply, %{state | pulsed_at_ns: nil, rise_time_ms: rise_time_ms, pulsed: false}}
+  end
+
+  # Ignore all other transitions (lazy debounce)
+  def handle_info({:gpio, _pin_number, _timestamp, _value}, state) do
     {:noreply, state}
   end
 end
