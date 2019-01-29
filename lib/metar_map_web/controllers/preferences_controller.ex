@@ -31,7 +31,7 @@ defmodule MetarMapWeb.PreferencesController do
         conn
         |> put_flash(
           :info,
-          "Dark room calibrated to #{percent_string(prefs.dark_room_intensity)}"
+          "Dark room calibrated at #{percent_string(prefs.dark_room_intensity)}"
         )
         |> redirect(to: Routes.preferences_path(conn, :show))
 
@@ -50,7 +50,7 @@ defmodule MetarMapWeb.PreferencesController do
         conn
         |> put_flash(
           :info,
-          "Bright room calibrated to #{percent_string(prefs.bright_room_intensity)}"
+          "Bright room calibrated at #{percent_string(prefs.bright_room_intensity)}"
         )
         |> redirect(to: Routes.preferences_path(conn, :show))
 

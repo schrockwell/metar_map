@@ -1,6 +1,6 @@
 defmodule MetarMap.StripController do
   use GenServer
-
+  require Logger
   alias MetarMap.Timeline
 
   @channel 0
@@ -20,10 +20,10 @@ defmodule MetarMap.StripController do
 
     initial_state = %{
       prefs: prefs,
-      ldr_brightness: 1.0,
       brightness_timeline:
         Timeline.init(preferred_brightness(prefs), {MetarMap.Interpolation, :integers}),
-      latest_brightness: preferred_brightness(prefs)
+      latest_brightness: preferred_brightness(prefs),
+      room: :bright
     }
 
     send(self(), :render)
@@ -32,9 +32,8 @@ defmodule MetarMap.StripController do
   end
 
   def handle_cast({:put_prefs, prefs}, state) do
-    next_state = transition_brightness(%{state | prefs: prefs})
-
-    {:noreply, next_state}
+    next_state = %{state | prefs: prefs}
+    {:noreply, put_brightness_transition(next_state)}
   end
 
   def handle_info(:render, state) do
@@ -51,15 +50,20 @@ defmodule MetarMap.StripController do
     {:noreply, %{state | latest_brightness: next_brightness, brightness_timeline: next_timeline}}
   end
 
-  def handle_info({:ldr_brightness, brightness}, state) do
-    next_state = transition_brightness(%{state | ldr_brightness: brightness})
+  def handle_info({:ldr_brightness, ldr_brightness}, state) do
+    next_room = room_designation(state.prefs, ldr_brightness)
+    next_state = %{state | room: next_room}
 
-    {:noreply, next_state}
+    if next_room != state.room do
+      Logger.info("[StripController] Room went #{state.room} -> #{next_room}")
+    end
+
+    {:noreply, put_brightness_transition(next_state)}
   end
 
-  defp transition_brightness(state) do
+  defp put_brightness_transition(state) do
     # TODO: Averaging? Hysterisis?
-    dimmed_brightness = trunc(preferred_brightness(state.prefs) * state.ldr_brightness)
+    dimmed_brightness = trunc(preferred_brightness(state.prefs) * room_factor(state.room))
 
     next_timeline =
       Timeline.append(state.brightness_timeline, @brightness_transition_ms, dimmed_brightness)
@@ -70,4 +74,16 @@ defmodule MetarMap.StripController do
   defp preferred_brightness(prefs) do
     trunc(prefs.brightness_pct / 100 * 255)
   end
+
+  defp room_designation(prefs, ldr_brightness) do
+    cond do
+      ldr_brightness < prefs.dark_room_intensity + 0.1 -> :dark
+      ldr_brightness > prefs.bright_room_intensity - 0.1 -> :bright
+      true -> :normal
+    end
+  end
+
+  defp room_factor(:dark), do: 0.5
+  defp room_factor(:normal), do: 0.75
+  defp room_factor(:bright), do: 1.0
 end
