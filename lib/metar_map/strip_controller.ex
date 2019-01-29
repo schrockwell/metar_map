@@ -86,7 +86,7 @@ defmodule MetarMap.StripController do
     end
   end
 
-  defp room_factor(:dark), do: 0.5
-  defp room_factor(:normal), do: 0.75
+  defp room_factor(:dark), do: 0.2
+  defp room_factor(:normal), do: 0.5
   defp room_factor(:bright), do: 1.0
 end
