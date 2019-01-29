@@ -78,7 +78,7 @@ defmodule MetarMap.LedController do
      %State{
        station: station,
        prefs: prefs,
-       timeline: Timeline.init(),
+       timeline: Timeline.init(@colors.off, {MetarMap.Interpolation, :blend_colors}),
        initialized: false,
        pixel: {station.index, 0}
      }}
@@ -143,7 +143,7 @@ defmodule MetarMap.LedController do
 
   def handle_info(:frame, state) do
     Process.send_after(self(), :frame, @frame_interval_ms)
-    {color, timeline} = Timeline.interpolate(state.timeline)
+    {color, timeline} = Timeline.evaluate(state.timeline)
 
     # Maybe toggle the flickering if it's windy
     next_flicker =
@@ -188,7 +188,7 @@ defmodule MetarMap.LedController do
   defp update_station_color(state, opts) do
     next_color = station_color(state.station, state.prefs.mode)
 
-    if next_color != state.timeline.latest_color do
+    if next_color != state.timeline.latest_value do
       delay_ms = Keyword.get(opts, :delay_ms, 0)
       duration_ms = Keyword.get(opts, :duration_ms, @fade_duration_ms)
       timeline = Timeline.append(state.timeline, duration_ms, next_color, min_delay_ms: delay_ms)

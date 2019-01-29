@@ -1,8 +1,11 @@
 defmodule MetarMap.StripController do
   use GenServer
 
+  alias MetarMap.Timeline
+
   @channel 0
   @render_interval_ms 20
+  @brightness_transition_ms 500
 
   def start_link(prefs) do
     GenServer.start_link(__MODULE__, prefs, name: __MODULE__)
@@ -17,44 +20,54 @@ defmodule MetarMap.StripController do
 
     initial_state = %{
       prefs: prefs,
-      ldr_brightness: 1.0
+      ldr_brightness: 1.0,
+      brightness_timeline:
+        Timeline.init(preferred_brightness(prefs), {MetarMap.Interpolation, :integers}),
+      latest_brightness: preferred_brightness(prefs)
     }
 
     send(self(), :render)
-    set_brightness(initial_state)
 
     {:ok, initial_state}
   end
 
   def handle_cast({:put_prefs, prefs}, state) do
-    next_state = %{state | prefs: prefs}
-    set_brightness(next_state)
+    next_state = transition_brightness(%{state | prefs: prefs})
 
     {:noreply, next_state}
   end
 
   def handle_info(:render, state) do
+    next_brightness = Timeline.evaluate(state.brightness_timeline)
+
+    if next_brightness != state.latest_brightness do
+      Blinkchain.set_brightness(@channel, next_brightness)
+    end
+
     Blinkchain.render()
 
     Process.send_after(self(), :render, @render_interval_ms)
 
-    {:noreply, state}
+    {:noreply, %{state | latest_brightness: next_brightness}}
   end
 
   def handle_info({:ldr_brightness, brightness}, state) do
-    next_state = %{state | ldr_brightness: brightness}
-
-    set_brightness(state)
+    next_state = transition_brightness(%{state | ldr_brightness: brightness})
 
     {:noreply, next_state}
   end
 
-  defp set_brightness(state) do
-    preferred_brightness = trunc(state.prefs.brightness_pct / 100 * 255)
-
+  defp transition_brightness(state) do
     # TODO: Averaging? Hysterisis?
-    adjusted_brightness = trunc(preferred_brightness * state.ldr_brightness)
+    dimmed_brightness = trunc(preferred_brightness(state.prefs) * state.ldr_brightness)
 
-    :ok = Blinkchain.set_brightness(@channel, adjusted_brightness)
+    next_timeline =
+      Timeline.append(state.brightness_timeline, @brightness_transition_ms, dimmed_brightness)
+
+    %{state | brightness_timeline: next_timeline}
+  end
+
+  defp preferred_brightness(prefs) do
+    trunc(prefs.brightness_pct / 100 * 255)
   end
 end

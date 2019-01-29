@@ -1,48 +1,46 @@
 defmodule MetarMap.Timeline do
-  alias Blinkchain.Color
-
-  defstruct transitions: [], latest_color: %Color{r: 0, g: 0, b: 0, w: 0}
+  defstruct transitions: [], latest_value: nil, interpolate_fun: nil
 
   defmodule Transition do
-    defstruct [:start_at, :start_color, :end_at, :end_color]
+    defstruct [:start_at, :start_value, :end_at, :end_value]
   end
 
-  def init(start_color \\ %Color{r: 0, g: 0, b: 0, w: 0}) do
-    %__MODULE__{latest_color: start_color}
+  def init(initial_value, interpolate_fun) do
+    %__MODULE__{latest_value: initial_value, interpolate_fun: interpolate_fun}
   end
 
   defp now_ms, do: :erlang.monotonic_time(:millisecond)
 
   @doc """
-  Enqueues a color transition.
+  Enqueues a value transition.
 
   Will always begin after the last scheduled transition, or in `min_delay_ms`, whichever comes
   first.
   """
-  def append(timeline, duration_ms, color, opts \\ []) do
+  def append(timeline, duration_ms, value, opts \\ []) do
     min_delay_ms = Keyword.get(opts, :min_delay_ms, 0)
 
     start_at = find_start_at(timeline, now_ms(), min_delay_ms)
-    start_color = timeline.latest_color
+    start_value = timeline.latest_value
     end_at = start_at + duration_ms
-    end_color = color
+    end_value = value
 
     transition = %Transition{
       start_at: start_at,
-      start_color: start_color,
+      start_value: start_value,
       end_at: end_at,
-      end_color: end_color
+      end_value: end_value
     }
 
-    %{timeline | transitions: timeline.transitions ++ [transition], latest_color: end_color}
+    %{timeline | transitions: timeline.transitions ++ [transition], latest_value: end_value}
   end
 
   @doc """
-  Immediately stops the timeline and freezes it to the latest inteprolated color.
+  Immediately stops the timeline and freezes it to the latest inteprolated value.
   """
   def abort(timeline) do
-    {color, timeline} = interpolate(timeline)
-    %{timeline | transitions: [], latest_color: color}
+    {value, timeline} = evaluate(timeline)
+    %{timeline | transitions: [], latest_value: value}
   end
 
   # Returns the earliest time a transition could begin
@@ -58,51 +56,56 @@ defmodule MetarMap.Timeline do
   end
 
   @doc """
-  Determines the current color of the pixel.
+  Determines the current value of the pixel.
 
-  Returns a tuple containing the color and the updated timeline.
+  Returns a tuple containing the value and the updated timeline.
   """
-  def interpolate(%{transitions: [], latest_color: color} = timeline), do: {color, timeline}
+  def evaluate(%{transitions: [], latest_value: value} = timeline), do: {value, timeline}
 
-  def interpolate(timeline) do
+  def evaluate(timeline) do
     now = now_ms()
 
-    # If we have no upcoming transitions, then just assume it's the latest color. Otherwise, we
+    # If we have no upcoming transitions, then just assume it's the latest value. Otherwise, we
     # might be in a period where no transition has yet begun, so assume we are leading UP to that
-    # transition and assume its starting color.
-    initial_color =
+    # transition and assume its starting value.
+    initial_value =
       if timeline.transitions == [] do
-        timeline.latest_color
+        timeline.latest_value
       else
-        hd(timeline.transitions).start_color
+        hd(timeline.transitions).start_value
       end
 
-    initial_acc = {initial_color, []}
+    initial_acc = {initial_value, []}
 
-    {color, next_transitions} =
-      Enum.reduce(timeline.transitions, initial_acc, fn transition, {color, transitions} ->
+    {value, next_transitions} =
+      Enum.reduce(timeline.transitions, initial_acc, fn transition, {value, transitions} ->
         cond do
           transition.end_at < now ->
-            # The transition has passed - set the end color and discard it
-            {transition.end_color, transitions}
+            # The transition has passed - set the end value and discard it
+            {transition.end_value, transitions}
 
           transition.start_at > now ->
             # The transition has not yet begun - keep it
-            {color, transitions ++ [transition]}
+            {value, transitions ++ [transition]}
 
           true ->
-            color =
-              MetarMap.blend(
-                transition.start_color,
-                transition.end_color,
+            value =
+              do_apply(timeline.interpolate_fun, [
+                transition.start_value,
+                transition.end_value,
                 transition.start_at..transition.end_at,
                 now
-              )
+              ])
 
-            {color, transitions ++ [transition]}
+            {value, transitions ++ [transition]}
         end
       end)
 
-    {color, %{timeline | transitions: next_transitions}}
+    {value, %{timeline | transitions: next_transitions}}
   end
+
+  defp do_apply(fun, args) when is_function(fun), do: apply(fun, args)
+
+  defp do_apply({module, fun}, args) when is_atom(module) and is_atom(fun),
+    do: apply(module, fun, args)
 end
