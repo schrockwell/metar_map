@@ -17,6 +17,7 @@ defmodule MetarMapWeb.Router do
     pipe_through :browser
 
     resources "/", PreferencesController, singleton: true
+    post "/calibrate_room", PreferencesController, :calibrate_room
   end
 
   # Other scopes may use custom stacks.

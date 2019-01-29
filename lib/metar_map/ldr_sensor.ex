@@ -15,6 +15,10 @@ defmodule MetarMap.LdrSensor do
     GenServer.call(__MODULE__, :read)
   end
 
+  def available?() do
+    !!Process.whereis(__MODULE__)
+  end
+
   def init(opts) do
     gpio_pin = Keyword.fetch!(opts, :gpio_pin)
 

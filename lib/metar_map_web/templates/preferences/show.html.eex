@@ -30,10 +30,24 @@
   </div>-->
 
   <%= submit "Save", class: "px-5 py-3 bg-blue text-white hover:bg-blue-dark" %>
-  <span class="alert px-3 py-2 my-4 text-green" role="alert"><%= get_flash(@conn, :info) %></span>
-  <span class="alert px-3 py-2 my-4 text-red" role="alert"><%= get_flash(@conn, :error) %></span>
 <% end %>
 
+<%= if MetarMap.LdrSensor.available?() do %>
+  <div class="mt-4">
+    <%= button("Calibrate Dark Room", 
+      to: Routes.preferences_path(@conn, :calibrate_room, condition: "dark"),
+      class: "px-5 py-3 bg-grey-darker text-grey-lighter hover:bg-grey-darkest") %>
+
+    <%= button("Calibrate Bright Room",
+      to: Routes.preferences_path(@conn, :calibrate_room, condition: "bright"),
+      class: "px-5 py-3 bg-yellow text-yellow-darker hover:bg-yellow-dark") %>
+  </div>
+<% end %>
+
+<div class="mt-4">
+  <div class="alert py-2 my-4 text-green" role="alert"><%= get_flash(@conn, :info) %></div>
+  <div class="alert py-2 my-4 text-red" role="alert"><%= get_flash(@conn, :error) %></div>
+</div>
 
 <script type="text/javascript">
   setTimeout(function() {
