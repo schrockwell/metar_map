@@ -39,16 +39,19 @@ network={
 }
 ```
 
-# GTFO
+Now eject the SD card.
+
+```
 diskutil eject /dev/disk2
 ```
 
-Log into the pi as user `pi` with password `raspberry`.
+Log into the pi as user `pi` with password `raspberry`. Do everything below as `root`
 
 ```
+# We're rooting for you!
 sudo bash
 
-# Set up Elixir repos
+# Set up Elixir/Erlang repos for apt
 echo "deb https://packages.erlang-solutions.com/debian stretch contrib" | sudo tee /etc/apt/sources.list.d/erlang-solutions.list
 wget https://packages.erlang-solutions.com/debian/erlang_solutions.asc
 apt-key add erlang_solutions.asc
@@ -78,8 +81,24 @@ mix phx.digest
 mix phx.server
 ```
 
-Now install the systemd service at `/etc/systemd/system/metar-map.service`. There's an example in
-`priv/`.
+Now set up the config files:
+
+```
+# Set up systemd
+cp priv/metar-map.service /etc/systemd/system/metar-map.service
+
+# Set up static application config (stations, etc.)
+mkdir -p /etc/metar-map
+cp priv/example_config.exs /etc/metar-map/config
+vim /etc/metar-map/config # And edit away!
+
+# Launch it!
+systemctl enable metar-map
+systemctl start metar-map
+systemctl status metar-map
+```
+
+Look for it running on port 80.
 
 ## Helpful Stuff
 

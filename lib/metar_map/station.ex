@@ -32,16 +32,4 @@ defmodule MetarMap.Station do
       %{base_agl: base_agl} -> base_agl
     end
   end
-
-  def list(filename) do
-    filename
-    |> Code.eval_file()
-    |> elem(0)
-    |> Enum.map(fn {station_id, index} ->
-      %__MODULE__{
-        id: station_id,
-        index: index
-      }
-    end)
-  end
 end

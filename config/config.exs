@@ -23,7 +23,7 @@ config :logger, :console,
 config :phoenix, :json_library, Jason
 
 config :metar_map,
-  stations: System.get_env("STATIONS") || "priv/example_stations.exs"
+  config: System.get_env("CONFIG") || "priv/example_config.exs"
 
 import_config "blinkchain.exs"
 

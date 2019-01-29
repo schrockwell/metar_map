@@ -6,16 +6,16 @@ defmodule MetarMap.Application do
   use Application
 
   def start(_type, _args) do
-    stations = load_station_config()
+    static_config = load_static_config()
     prefs = MetarMap.Preferences.load()
 
     # List all child processes to be supervised
     children =
       List.flatten([
         {Registry, keys: :duplicate, name: MetarMap.LedController.Registry},
-        Enum.map(stations, &{MetarMap.LedController, station: &1, prefs: prefs}),
+        Enum.map(static_config.stations, &{MetarMap.LedController, station: &1, prefs: prefs}),
         {MetarMap.StripController, prefs: prefs},
-        {MetarMap.MetarFetcher, stations: stations},
+        {MetarMap.MetarFetcher, stations: static_config.stations},
         MetarMapWeb.Endpoint
       ])
 
@@ -32,13 +32,13 @@ defmodule MetarMap.Application do
     :ok
   end
 
-  defp load_station_config do
-    filename = Application.get_env(:metar_map, :stations)
+  defp load_static_config do
+    filename = Application.get_env(:metar_map, :config)
 
     unless filename do
       raise "Missing: `config :metar_map, :stations, \"/some/path.exs\""
     end
 
-    MetarMap.Station.list(filename)
+    MetarMap.StaticConfig.read(filename)
   end
 end

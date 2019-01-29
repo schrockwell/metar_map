@@ -8,6 +8,8 @@ defmodule MetarMap.LedController do
   @frame_interval_ms 20
   @fade_duration_ms 1500
   @wipe_duration_ms 2000
+  @flicker_probability 0.2
+  @flicker_brightness 0.7
 
   @colors %{
     off: %Color{r: 0, g: 0, b: 0},
@@ -147,12 +149,12 @@ defmodule MetarMap.LedController do
     next_flicker =
       cond do
         !is_windy?(state) -> false
-        :rand.uniform() < 0.2 -> !state.flicker
+        :rand.uniform() < @flicker_probability -> !state.flicker
         true -> state.flicker
       end
 
     # If flickering, dim it to 80%
-    color = if next_flicker, do: MetarMap.brighten(color, 0.75), else: color
+    color = if next_flicker, do: MetarMap.brighten(color, @flicker_brightness), else: color
 
     # For performance - only update if necessary
     if color != state.latest_color do
@@ -167,7 +169,7 @@ defmodule MetarMap.LedController do
   end
 
   defp add_wind_flash_to_timeline(state) do
-    # TEMP
+    # TEMP: Disabling wind flashing for the moment - trying out flickering instead
     next_timeline = state.timeline
 
     # next_timeline =
@@ -255,7 +257,7 @@ defmodule MetarMap.LedController do
   defp put_station_position(station, _metar, _bounds), do: station
 
   defp is_windy?(state) do
-    state.prefs.mode == "flight_category" and state.prefs.max_wind_kts > 0 and
+    state.prefs.max_wind_kts > 0 and
       Station.get_max_wind(state.station) >= state.prefs.max_wind_kts
   end
 end
