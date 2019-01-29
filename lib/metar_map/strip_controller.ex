@@ -18,13 +18,16 @@ defmodule MetarMap.StripController do
   def init(opts) do
     prefs = Keyword.fetch!(opts, :prefs)
 
+    initial_brightness = preferred_brightness(prefs)
+
     initial_state = %{
       prefs: prefs,
-      brightness_timeline:
-        Timeline.init(preferred_brightness(prefs), {MetarMap.Interpolation, :integers}),
-      latest_brightness: preferred_brightness(prefs),
+      brightness_timeline: Timeline.init(initial_brightness, {MetarMap.Interpolation, :integers}),
+      latest_brightness: initial_brightness,
       room: :bright
     }
+
+    Blinkchain.set_brightness(@channel, initial_brightness)
 
     send(self(), :render)
 
