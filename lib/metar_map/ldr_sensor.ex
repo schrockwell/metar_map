@@ -4,7 +4,7 @@ defmodule MetarMap.LdrSensor do
   alias Circuits.GPIO
 
   @pulse_duration_ms 100
-  @read_duration_ms 900
+  @read_duration_ms 500
   @notify MetarMap.StripController
 
   def start_link(opts) do
