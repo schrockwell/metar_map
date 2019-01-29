@@ -17,7 +17,12 @@ defmodule MetarMap.StripController do
 
     send(self(), :render)
     set_brightness(prefs)
-    {:ok, %{prefs: prefs}}
+
+    {:ok,
+     %{
+       prefs: prefs,
+       ldr_brightness: 1.0
+     }}
   end
 
   def handle_cast({:put_prefs, prefs}, state) do
@@ -29,6 +34,12 @@ defmodule MetarMap.StripController do
     Blinkchain.render()
     Process.send_after(self(), :render, @render_interval_ms)
     {:noreply, state}
+  end
+
+  def handle_info({:ldr_brightness, brightness}, state) do
+    IO.puts("Brightness: #{trunc(brightness * 100)}%")
+
+    {:noreply, %{state | ldr_brightness: brightness}}
   end
 
   defp set_brightness(prefs) do

@@ -5,6 +5,7 @@ defmodule MetarMap.LdrSensor do
 
   @pulse_duration_ms 100
   @read_duration_ms 900
+  @notify MetarMap.StripController
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -28,12 +29,12 @@ defmodule MetarMap.LdrSensor do
        gpio: gpio,
        pulsed: false,
        pulsed_at_ns: nil,
-       rise_time_ms: nil
+       rise_time_ms: 0
      }}
   end
 
   def handle_cast(:read, _, state) do
-    {:reply, state.rise_time_ms, state}
+    {:reply, normalize_value(state), state}
   end
 
   def handle_info(:poll, state) do
@@ -65,14 +66,20 @@ defmodule MetarMap.LdrSensor do
   # When transitioning to 1 after pulsing, record the timestamp and determine the rise time
   def handle_info({:gpio, _pin_number, timestamp_ns, 1}, %{pulsed: true} = state) do
     rise_time_ms = trunc((timestamp_ns - state.pulsed_at_ns) / 1_000_000) - @pulse_duration_ms
+    state = %{state | pulsed_at_ns: nil, rise_time_ms: rise_time_ms, pulsed: false}
 
-    IO.puts("Rise time: #{rise_time_ms} ms")
+    send(@notify, {:ldr_brightness, normalize_value(state)})
 
-    {:noreply, %{state | pulsed_at_ns: nil, rise_time_ms: rise_time_ms, pulsed: false}}
+    {:noreply, state}
   end
 
   # Ignore all other transitions (lazy debounce)
   def handle_info({:gpio, _pin_number, _timestamp, _value}, state) do
     {:noreply, state}
+  end
+
+  defp normalize_value(state) do
+    # Inverse relationship: bright => lower resistance => faster rise time
+    1.0 - state.rise_time_ms / @read_duration_ms
   end
 end
