@@ -4,7 +4,7 @@ defmodule MetarMap.LdrSensor do
   alias Circuits.GPIO
 
   @pulse_duration_ms 100
-  @read_duration_ms 500
+  @read_duration_ms 600
   @notify MetarMap.StripController
 
   def start_link(opts) do
@@ -80,6 +80,6 @@ defmodule MetarMap.LdrSensor do
 
   defp normalize_value(state) do
     # Inverse relationship: bright => lower resistance => faster rise time
-    1.0 - state.rise_time_ms / @read_duration_ms
+    (1.0 - state.rise_time_ms / @read_duration_ms) |> max(0.0) |> min(1.0)
   end
 end

@@ -15,35 +15,46 @@ defmodule MetarMap.StripController do
   def init(opts) do
     prefs = Keyword.fetch!(opts, :prefs)
 
-    send(self(), :render)
-    set_brightness(prefs)
+    initial_state = %{
+      prefs: prefs,
+      ldr_brightness: 1.0
+    }
 
-    {:ok,
-     %{
-       prefs: prefs,
-       ldr_brightness: 1.0
-     }}
+    send(self(), :render)
+    set_brightness(initial_state)
+
+    {:ok, initial_state}
   end
 
   def handle_cast({:put_prefs, prefs}, state) do
-    set_brightness(prefs)
-    {:noreply, %{state | prefs: prefs}}
+    next_state = %{state | prefs: prefs}
+    set_brightness(next_state)
+
+    {:noreply, next_state}
   end
 
   def handle_info(:render, state) do
     Blinkchain.render()
+
     Process.send_after(self(), :render, @render_interval_ms)
+
     {:noreply, state}
   end
 
   def handle_info({:ldr_brightness, brightness}, state) do
-    IO.puts("Brightness: #{trunc(brightness * 100)}%")
+    next_state = %{state | ldr_brightness: brightness}
 
-    {:noreply, %{state | ldr_brightness: brightness}}
+    set_brightness(state)
+
+    {:noreply, next_state}
   end
 
-  defp set_brightness(prefs) do
-    brightness = trunc(prefs.brightness_pct / 100 * 255)
-    :ok = Blinkchain.set_brightness(@channel, brightness)
+  defp set_brightness(state) do
+    preferred_brightness = trunc(state.prefs.brightness_pct / 100 * 255)
+
+    # TODO: Averaging? Hysterisis?
+    adjusted_brightness = trunc(preferred_brightness * state.ldr_brightness)
+
+    :ok = Blinkchain.set_brightness(@channel, adjusted_brightness)
   end
 end
