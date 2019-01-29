@@ -21,7 +21,7 @@ defmodule MetarMap.LdrSensor do
 
     {:ok, gpio} = GPIO.open(gpio_pin, :output)
 
-    GPIO.set_interrupts(gpio, :rising)
+    GPIO.set_interrupts(gpio, :both)
 
     {:ok,
      %{
@@ -56,8 +56,8 @@ defmodule MetarMap.LdrSensor do
     {:noreply, state}
   end
 
-  def handle_info({:gpio, _pin_number, timestamp, _value}, state) do
-    IO.puts("Got rising edge at #{timestamp}")
+  def handle_info({:gpio, _pin_number, timestamp, value}, state) do
+    IO.puts("Got transition to #{value} at #{timestamp}")
     {:noreply, state}
   end
 end
