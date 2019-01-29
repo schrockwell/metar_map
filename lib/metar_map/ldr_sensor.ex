@@ -37,7 +37,7 @@ defmodule MetarMap.LdrSensor do
      }}
   end
 
-  def handle_cast(:read, _, state) do
+  def handle_call(:read, _, state) do
     {:reply, normalize_value(state), state}
   end
 
