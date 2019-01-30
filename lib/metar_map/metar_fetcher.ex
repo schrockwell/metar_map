@@ -33,7 +33,7 @@ defmodule MetarMap.MetarFetcher do
             if LedController.exists?(metar.station_id) do
               LedController.put_metar(metar, bounds)
             else
-              Logger.warn("[MetarFetcher] Could not find LED for #{metar.station_id}")
+              Logger.warn("[MetarFetcher] Fetched extra station: #{metar.station_id}")
             end
 
             metar.station_id
@@ -42,8 +42,10 @@ defmodule MetarMap.MetarFetcher do
         missing_ids = state.station_ids -- fetched_station_ids
 
         if !Enum.empty?(missing_ids) do
-          Logger.warn("[MetarFetcher] Could not find: #{Enum.join(missing_ids, ", ")}")
+          Logger.warn("[MetarFetcher] Could not fetch: #{Enum.join(missing_ids, ", ")}")
         end
+
+        Logger.info("[MetarFetcher] Retrieved #{length(metars)} METARs")
 
       _ ->
         Logger.warn("[MetarFetcher] Error fetching METARs")

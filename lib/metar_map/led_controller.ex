@@ -85,10 +85,10 @@ defmodule MetarMap.LedController do
   def handle_cast({:put_metar, metar, bounds}, state) do
     next_station =
       state.station
-      |> MetarMap.Station.put_metar(metar)
+      |> Station.put_metar(metar)
       |> put_station_position(metar, bounds)
 
-    Logger.info(
+    Logger.debug(
       Enum.join(
         [
           "[#{next_station.id}]",
@@ -98,6 +98,10 @@ defmodule MetarMap.LedController do
         " "
       )
     )
+
+    if Station.get_category(next_station) == :unknown do
+      Logger.warn("[#{next_station.id}] Flight category unknown")
+    end
 
     next_state = %{state | station: next_station, initialized: true}
     delay_ms = if state.initialized, do: 0, else: wipe_delay_ms(next_state)
