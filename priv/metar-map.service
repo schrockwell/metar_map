@@ -12,6 +12,7 @@ ExecStartPre=/usr/bin/mix deps.get
 ExecStartPre=/usr/bin/mix phx.digest
 ExecStart=/usr/bin/mix phx.server
 Restart=always
+TimeoutStartSec=10m
 
 [Install]
 WantedBy=multi-user.target

@@ -2,7 +2,7 @@
 
 ## Versions
 
-* Model: Raspberry Pi Model 3 B+
+* Raspberry Pis: 3 B+, Zero
 * Pi OS: [Raspbian Stretch Lite](https://www.raspberrypi.org/downloads/raspbian/)
 * Desktop OS: macOS 10.14 Mojave
 * Elixir: 1.7.4
@@ -51,6 +51,13 @@ Log into the pi as user `pi` with password `raspberry`. Do everything below as `
 # We're rooting for you!
 sudo bash
 
+# Change the hostname
+vim /etc/hostname
+vim /etc/hosts
+reboot 
+
+# Log back in...
+
 # Set up Elixir/Erlang repos for apt
 echo "deb https://packages.erlang-solutions.com/debian stretch contrib" | sudo tee /etc/apt/sources.list.d/erlang-solutions.list
 wget https://packages.erlang-solutions.com/debian/erlang_solutions.asc
@@ -59,31 +66,20 @@ apt-key add erlang_solutions.asc
 # Install required things
 apt update
 apt upgrade -y
-apt install git python3-gpiozero vim elixir -y
+apt install git python3-gpiozero vim elixir erlang-dev erlang-parsetools erlang-xmerl -y
 
 # Get the repo (still as root)
 cd /root
-
-mix local.hex --force
-mix local.rebar --force
-
-export PORT=80
-export MIX_ENV=prod
-export CROSSCOMPILE=1 # Hack for Blinkchain
-
 git clone https://github.com/schrockwell/metar_map.git
 cd metar_map
-mix deps.get
-mix compile
-mix phx.digest
 
-# Run it!
-mix phx.server
-```
+# Do the initial compilation
+export MIX_ENV=prod CROSSCOMPILE=1 # Hack for Blinkchain
 
-Now set up the config files:
+mix local.rebar --force
+mix local.hex --force
+mix compile # This will take a while
 
-```
 # Set up systemd
 cp priv/metar-map.service /etc/systemd/system/metar-map.service
 
@@ -99,6 +95,18 @@ systemctl status metar-map
 ```
 
 Look for it running on port 80.
+
+## On-Device Development
+
+```
+export MIX_ENV=prod CROSSCOMPILE=1 # Hack for Blinkchain
+
+cd /root/metar_map
+mix deps.get
+mix compile
+mix phx.digest
+mix phx.server
+```
 
 ## Helpful Stuff
 
