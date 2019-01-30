@@ -3,9 +3,16 @@ defmodule MetarMap.LdrSensor do
 
   alias Circuits.GPIO
 
+  # The duration to force 0 output to discharge the capacitor
   @pulse_duration_ms 100
+
+  # The duration after the pulse to wait for a rising edge
   @read_duration_ms 600
-  @notify MetarMap.StripController
+
+  # Process to notify of LDR changes
+  @notify_server MetarMap.StripController
+
+  # Use the median of X LDR readings
   @ldr_averaging 5
 
   def start_link(opts) do
@@ -79,9 +86,9 @@ defmodule MetarMap.LdrSensor do
 
     state = %{state | pulsed_at_ns: nil, rise_times: rise_times, pulsed: false}
 
-    IO.puts("Median rise time: #{median(rise_times)}ms")
+    # IO.puts("Median rise time: #{median(rise_times)}ms")
 
-    send(@notify, {:ldr_brightness, normalize_value(state)})
+    send(@notify_server, {:ldr_brightness, normalize_value(state)})
 
     {:noreply, state}
   end
@@ -104,7 +111,7 @@ defmodule MetarMap.LdrSensor do
     list ++ [rise_time]
   end
 
-  defp append_rise_time([head | tail], rise_time) do
+  defp append_rise_time([_head | tail], rise_time) do
     tail ++ [rise_time]
   end
 end
