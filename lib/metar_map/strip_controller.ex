@@ -4,7 +4,7 @@ defmodule MetarMap.StripController do
   alias MetarMap.Timeline
 
   @channel 0
-  @render_interval_ms 20
+  @render_interval_ms 40
   @brightness_transition_ms 500
 
   def start_link(prefs) do

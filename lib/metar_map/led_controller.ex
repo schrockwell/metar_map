@@ -5,7 +5,7 @@ defmodule MetarMap.LedController do
   alias Blinkchain.Color
   alias MetarMap.{Station, Timeline}
 
-  @frame_interval_ms 20
+  @frame_interval_ms 40
   @fade_duration_ms 1500
   @wipe_duration_ms 2000
   @flicker_probability 0.2
