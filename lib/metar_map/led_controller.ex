@@ -125,16 +125,19 @@ defmodule MetarMap.LedController do
   end
 
   def handle_info(:frame, state) do
-    {color, timeline, upcoming_in} = Timeline.evaluate(state.timeline)
+    is_flickering = is_windy?(state)
 
-    windy = is_windy?(state)
+    # Kick off the next frame ASAP if necessary
+    if is_flickering or !Timeline.empty?(state.timeline) do
+      trigger_frame(@frame_interval_ms)
+    end
 
-    trigger_frame(upcoming_in, windy)
+    {color, timeline} = Timeline.evaluate(state.timeline)
 
-    # Maybe toggle the flickering if it's windy
+    # Randomly toggle the flickering if it's windy
     next_flicker =
       cond do
-        !windy -> false
+        !is_flickering -> false
         :rand.uniform() < @flicker_probability -> !state.flicker
         true -> state.flicker
       end
@@ -234,13 +237,7 @@ defmodule MetarMap.LedController do
     send(self(), :frame)
   end
 
-  defp trigger_frame(_, true) do
-    Process.send_after(self(), :frame, @frame_interval_ms)
-  end
-
-  defp trigger_frame(nil, false), do: nil
-
-  defp trigger_frame(upcoming_in, false) do
-    Process.send_after(self(), :frame, max(upcoming_in, @frame_interval_ms))
+  defp trigger_frame(delay_ms) do
+    Process.send_after(self(), :frame, delay_ms)
   end
 end

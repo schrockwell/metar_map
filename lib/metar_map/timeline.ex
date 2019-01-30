@@ -39,9 +39,12 @@ defmodule MetarMap.Timeline do
   Immediately stops the timeline and freezes it to the latest inteprolated value.
   """
   def abort(timeline) do
-    {value, timeline, _} = evaluate(timeline)
+    {value, timeline} = evaluate(timeline)
     %{timeline | transitions: [], latest_value: value}
   end
+
+  def empty?(%{transitions: []}), do: true
+  def empty?(_), do: false
 
   # Returns the earliest time a transition could begin
   defp find_start_at(timeline, now, min_delay_ms) do
@@ -60,11 +63,14 @@ defmodule MetarMap.Timeline do
 
   Returns a tuple containing the value and the updated timeline.
   """
-  def evaluate(%{transitions: [], latest_value: value} = timeline), do: {value, timeline, nil}
-
   def evaluate(timeline) do
-    now = now_ms()
+    evaluate(timeline, now_ms())
+  end
 
+  def evaluate(%{transitions: [], latest_value: value} = timeline, _now),
+    do: {value, timeline}
+
+  def evaluate(timeline, now) do
     # If we have no upcoming transitions, then just assume it's the latest value. Otherwise, we
     # might be in a period where no transition has yet begun, so assume we are leading UP to that
     # transition and assume its starting value.
@@ -101,14 +107,7 @@ defmodule MetarMap.Timeline do
         end
       end)
 
-    upcoming_at =
-      case next_transitions do
-        [] -> nil
-        [%{start_at: start_at} | _] when start_at <= now -> 0
-        [%{start_at: start_at} | _] -> start_at - now
-      end
-
-    {value, %{timeline | transitions: next_transitions}, upcoming_at}
+    {value, %{timeline | transitions: next_transitions}}
   end
 
   defp do_apply(fun, args) when is_function(fun), do: apply(fun, args)
