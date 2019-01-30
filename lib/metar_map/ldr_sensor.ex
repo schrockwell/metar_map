@@ -76,6 +76,8 @@ defmodule MetarMap.LdrSensor do
     rise_time_ms = trunc((timestamp_ns - state.pulsed_at_ns) / 1_000_000) - @pulse_duration_ms
     state = %{state | pulsed_at_ns: nil, rise_time_ms: rise_time_ms, pulsed: false}
 
+    IO.puts("Rise time: #{rise_time_ms}ms")
+
     send(@notify, {:ldr_brightness, normalize_value(state)})
 
     {:noreply, state}
