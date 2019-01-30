@@ -6,6 +6,7 @@ defmodule MetarMap.LdrSensor do
   @pulse_duration_ms 100
   @read_duration_ms 600
   @notify MetarMap.StripController
+  @ldr_averaging 5
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -33,7 +34,7 @@ defmodule MetarMap.LdrSensor do
        gpio: gpio,
        pulsed: false,
        pulsed_at_ns: nil,
-       rise_time_ms: 0
+       rise_times: []
      }}
   end
 
@@ -74,9 +75,11 @@ defmodule MetarMap.LdrSensor do
   # When transitioning to 1 after pulsing, record the timestamp and determine the rise time
   def handle_info({:gpio, _pin_number, timestamp_ns, 1}, %{pulsed: true} = state) do
     rise_time_ms = trunc((timestamp_ns - state.pulsed_at_ns) / 1_000_000) - @pulse_duration_ms
-    state = %{state | pulsed_at_ns: nil, rise_time_ms: rise_time_ms, pulsed: false}
+    rise_times = append_rise_time(state.rise_times, rise_time_ms)
 
-    IO.puts("Rise time: #{rise_time_ms}ms")
+    state = %{state | pulsed_at_ns: nil, rise_times: rise_times, pulsed: false}
+
+    IO.puts("Median rise time: #{median(rise_times)}ms")
 
     send(@notify, {:ldr_brightness, normalize_value(state)})
 
@@ -90,6 +93,18 @@ defmodule MetarMap.LdrSensor do
 
   defp normalize_value(state) do
     # Inverse relationship: bright => lower resistance => faster rise time
-    (1.0 - state.rise_time_ms / @read_duration_ms) |> max(0.0) |> min(1.0)
+    (1.0 - median(state.rise_times) / @read_duration_ms) |> max(0.0) |> min(1.0)
+  end
+
+  def median(list) do
+    list |> Enum.sort() |> Enum.at(trunc(length(list) / 2))
+  end
+
+  defp append_rise_time(list, rise_time) when length(list) < @ldr_averaging do
+    list ++ [rise_time]
+  end
+
+  defp append_rise_time([head | tail], rise_time) do
+    tail ++ [rise_time]
   end
 end
