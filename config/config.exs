@@ -22,9 +22,6 @@ config :logger, :console,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
-config :metar_map,
-  config: System.get_env("CONFIG") || "priv/example_config.exs"
-
 import_config "blinkchain.exs"
 
 # Import environment specific config. This must remain at the bottom

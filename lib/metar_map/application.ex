@@ -5,23 +5,26 @@ defmodule MetarMap.Application do
 
   use Application
 
+  alias MetarMap.Config
+
   def start(_type, _args) do
-    static_config = load_static_config()
     prefs = MetarMap.Preferences.load()
+    stations = Config.stations()
+    ldr_pin = Config.ldr_pin()
 
     # List all child processes to be supervised
     children =
       List.flatten([
         {Registry, keys: :duplicate, name: MetarMap.LedController.Registry},
-        Enum.map(static_config.stations, &{MetarMap.LedController, station: &1, prefs: prefs}),
+        Enum.map(stations, &{MetarMap.LedController, station: &1, prefs: prefs}),
         {MetarMap.StripController, prefs: prefs},
-        {MetarMap.MetarFetcher, stations: static_config.stations},
+        {MetarMap.MetarFetcher, stations: stations},
         MetarMapWeb.Endpoint
       ])
 
     children =
-      if static_config.ldr_pin do
-        [{MetarMap.LdrSensor, gpio_pin: static_config.ldr_pin}] ++ children
+      if ldr_pin do
+        [{MetarMap.LdrSensor, gpio_pin: ldr_pin}] ++ children
       else
         children
       end
@@ -37,15 +40,5 @@ defmodule MetarMap.Application do
   def config_change(changed, _new, removed) do
     MetarMapWeb.Endpoint.config_change(changed, removed)
     :ok
-  end
-
-  defp load_static_config do
-    filename = Application.get_env(:metar_map, :config)
-
-    unless filename do
-      raise "Missing: `config :metar_map, :stations, \"/some/path.exs\""
-    end
-
-    MetarMap.StaticConfig.read(filename)
   end
 end

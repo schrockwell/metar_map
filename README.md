@@ -89,7 +89,7 @@ cp priv/metar-map.service /etc/systemd/system/metar-map.service
 
 # Set up static application config (stations, etc.)
 mkdir -p /etc/metar-map
-cp priv/example_config.exs /etc/metar-map/config
+cp priv/example_config.exs /etc/metar-map/config.exs
 vim /etc/metar-map/config # And edit away!
 
 # Launch it!
