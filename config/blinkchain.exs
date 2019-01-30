@@ -1,7 +1,5 @@
 use Mix.Config
 
-config :blinkchain, canvas: {50, 1}
-
 gamma = [
   0,
   0,

@@ -67,6 +67,10 @@ defmodule MetarMap.LdrSensor do
     {:noreply, %{state | pulsed_at_ns: timestamp_ns}}
   end
 
+  # If we get a rising edge but haven't detected the pulse falling edge yet, then do nothing
+  def handle_info({:gpio, _pin_number, _timestamp_ns, 1}, %{pulsed_at_ns: nil} = state),
+    do: {:noreply, state}
+
   # When transitioning to 1 after pulsing, record the timestamp and determine the rise time
   def handle_info({:gpio, _pin_number, timestamp_ns, 1}, %{pulsed: true} = state) do
     rise_time_ms = trunc((timestamp_ns - state.pulsed_at_ns) / 1_000_000) - @pulse_duration_ms
