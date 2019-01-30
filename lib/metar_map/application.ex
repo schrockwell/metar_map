@@ -19,15 +19,9 @@ defmodule MetarMap.Application do
         Enum.map(stations, &{MetarMap.LedController, station: &1, prefs: prefs}),
         {MetarMap.StripController, prefs: prefs},
         {MetarMap.MetarFetcher, stations: stations},
+        if(ldr_pin, do: [{MetarMap.LdrSensor, gpio_pin: ldr_pin}], else: []),
         MetarMapWeb.Endpoint
       ])
-
-    children =
-      if ldr_pin do
-        [{MetarMap.LdrSensor, gpio_pin: ldr_pin}] ++ children
-      else
-        children
-      end
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
