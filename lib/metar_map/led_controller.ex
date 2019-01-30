@@ -27,7 +27,6 @@ defmodule MetarMap.LedController do
       :station,
       :timeline,
       :prefs,
-      :flash_timer,
       :latest_color,
       :initialized,
       :pixel,
@@ -71,8 +70,7 @@ defmodule MetarMap.LedController do
   def init({station, prefs}) do
     {:ok, _} = Registry.register(__MODULE__.Registry, nil, station.id)
 
-    send(self(), :frame)
-    send(self(), :flash_winds)
+    trigger_frame()
 
     {:ok,
      %State{
@@ -104,6 +102,8 @@ defmodule MetarMap.LedController do
     next_state = %{state | station: next_station, initialized: true}
     delay_ms = if state.initialized, do: 0, else: wipe_delay_ms(next_state)
 
+    trigger_frame()
+
     {:noreply, update_station_color(next_state, delay_ms: delay_ms)}
   end
 
@@ -119,36 +119,22 @@ defmodule MetarMap.LedController do
         state.timeline
       end
 
-    # Immediately flash if the wind settings have changed
-    if {new_prefs.max_wind_kts, new_prefs.wind_flash_interval_sec} !=
-         {state.prefs.max_wind_kts, state.prefs.wind_flash_interval_sec} do
-      if state.flash_timer do
-        Process.cancel_timer(state.flash_timer)
-      end
+    trigger_frame()
 
-      send(self(), :flash_winds)
-    end
-
-    {:noreply, %{state | prefs: new_prefs, flash_timer: nil, timeline: timeline}}
-  end
-
-  def handle_info(:flash_winds, state) do
-    state = add_wind_flash_to_timeline(state)
-
-    next_flash_interval = 2 * @fade_duration_ms + state.prefs.wind_flash_interval_sec * 1000
-    flash_timer = Process.send_after(self(), :flash_winds, next_flash_interval)
-
-    {:noreply, %{state | flash_timer: flash_timer}}
+    {:noreply, %{state | prefs: new_prefs, timeline: timeline}}
   end
 
   def handle_info(:frame, state) do
-    Process.send_after(self(), :frame, @frame_interval_ms)
-    {color, timeline} = Timeline.evaluate(state.timeline)
+    {color, timeline, upcoming_in} = Timeline.evaluate(state.timeline)
+
+    windy = is_windy?(state)
+
+    trigger_frame(upcoming_in, windy)
 
     # Maybe toggle the flickering if it's windy
     next_flicker =
       cond do
-        !is_windy?(state) -> false
+        !windy -> false
         :rand.uniform() < @flicker_probability -> !state.flicker
         true -> state.flicker
       end
@@ -166,23 +152,6 @@ defmodule MetarMap.LedController do
 
   def terminate(_, state) do
     Blinkchain.set_pixel(state.pixel, @colors.off)
-  end
-
-  defp add_wind_flash_to_timeline(state) do
-    # TEMP: Disabling wind flashing for the moment - trying out flickering instead
-    next_timeline = state.timeline
-
-    # next_timeline =
-    #   if is_windy?(state) do
-    #     # Fade out and back in for windy stations
-    #     state.timeline
-    #     |> Timeline.append(@fade_duration_ms, @colors.off)
-    #     |> Timeline.append(@fade_duration_ms, station_color(state.station, state.prefs.mode))
-    #   else
-    #     state.timeline
-    #   end
-
-    %{state | timeline: next_timeline}
   end
 
   defp update_station_color(state, opts) do
@@ -259,5 +228,19 @@ defmodule MetarMap.LedController do
   defp is_windy?(state) do
     state.prefs.max_wind_kts > 0 and
       Station.get_max_wind(state.station) >= state.prefs.max_wind_kts
+  end
+
+  defp trigger_frame() do
+    send(self(), :frame)
+  end
+
+  defp trigger_frame(_, true) do
+    Process.send_after(self(), :frame, @frame_interval_ms)
+  end
+
+  defp trigger_frame(nil, false), do: nil
+
+  defp trigger_frame(upcoming_in, false) do
+    Process.send_after(self(), :frame, max(upcoming_in, @frame_interval_ms))
   end
 end

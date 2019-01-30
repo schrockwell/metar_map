@@ -39,7 +39,7 @@ defmodule MetarMap.Timeline do
   Immediately stops the timeline and freezes it to the latest inteprolated value.
   """
   def abort(timeline) do
-    {value, timeline} = evaluate(timeline)
+    {value, timeline, _} = evaluate(timeline)
     %{timeline | transitions: [], latest_value: value}
   end
 
@@ -60,7 +60,7 @@ defmodule MetarMap.Timeline do
 
   Returns a tuple containing the value and the updated timeline.
   """
-  def evaluate(%{transitions: [], latest_value: value} = timeline), do: {value, timeline}
+  def evaluate(%{transitions: [], latest_value: value} = timeline), do: {value, timeline, nil}
 
   def evaluate(timeline) do
     now = now_ms()
@@ -101,7 +101,14 @@ defmodule MetarMap.Timeline do
         end
       end)
 
-    {value, %{timeline | transitions: next_transitions}}
+    upcoming_at =
+      case next_transitions do
+        [] -> nil
+        [%{start_at: start_at} | _] when start_at <= now -> 0
+        [%{start_at: start_at} | _] -> start_at - now
+      end
+
+    {value, %{timeline | transitions: next_transitions}, upcoming_at}
   end
 
   defp do_apply(fun, args) when is_function(fun), do: apply(fun, args)

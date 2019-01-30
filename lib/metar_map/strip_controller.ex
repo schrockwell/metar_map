@@ -40,7 +40,7 @@ defmodule MetarMap.StripController do
   end
 
   def handle_info(:render, state) do
-    {next_brightness, next_timeline} = Timeline.evaluate(state.brightness_timeline)
+    {next_brightness, next_timeline, _upcoming_at} = Timeline.evaluate(state.brightness_timeline)
 
     if next_brightness != state.latest_brightness do
       Blinkchain.set_brightness(@channel, next_brightness)
