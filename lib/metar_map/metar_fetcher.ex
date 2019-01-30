@@ -28,12 +28,21 @@ defmodule MetarMap.MetarFetcher do
       {:ok, metars} ->
         bounds = Metar.find_bounds(metars)
 
-        for metar <- metars do
-          if LedController.exists?(metar.station_id) do
-            LedController.put_metar(metar, bounds)
-          else
-            Logger.warn("[MetarFetcher] Could not find LED for #{metar.station_id}")
+        fetched_station_ids =
+          for metar <- metars do
+            if LedController.exists?(metar.station_id) do
+              LedController.put_metar(metar, bounds)
+            else
+              Logger.warn("[MetarFetcher] Could not find LED for #{metar.station_id}")
+            end
+
+            metar.station_id
           end
+
+        missing_ids = state.station_ids -- fetched_station_ids
+
+        if !Enum.empty?(missing_ids) do
+          Logger.warn("[MetarFetcher] Could not find: #{Enum.join(missing_ids, ", ")}")
         end
 
       _ ->
