@@ -174,6 +174,28 @@ defmodule MetarMap.LedController do
     end
   end
 
+  @wind_speed_gradient [
+    {5, @colors.green},
+    {10, @colors.yellow},
+    {25, @colors.red},
+    {35, @colors.purple},
+    {50, @colors.white}
+  ]
+
+  @ceiling_gradient [
+    {1000, @colors.red},
+    {3000, @colors.orange},
+    {5000, @colors.yellow},
+    {10000, @colors.green}
+  ]
+
+  @visiblity_gradient [
+    {1, @colors.red},
+    {3, @colors.orange},
+    {5, @colors.yellow},
+    {10, @colors.green}
+  ]
+
   defp station_color(station, "flight_category") do
     station
     |> Station.get_category()
@@ -187,29 +209,15 @@ defmodule MetarMap.LedController do
   end
 
   defp station_color(station, "wind_speed") do
-    station
-    |> Station.get_max_wind()
-    |> case do
-      kts when kts in 0..5 -> @colors.green
-      kts when kts in 6..10 -> MetarMap.blend(@colors.green, @colors.yellow, 6..10, kts)
-      kts when kts in 11..25 -> MetarMap.blend(@colors.yellow, @colors.red, 11..25, kts)
-      kts when kts in 26..35 -> MetarMap.blend(@colors.red, @colors.purple, 26..35, kts)
-      kts when kts in 36..50 -> MetarMap.blend(@colors.purple, @colors.white, 36..50, kts)
-      _ -> @colors.white
-    end
+    MetarMap.blend_gradient(@wind_speed_gradient, Station.get_max_wind(station), @colors.off)
   end
 
   defp station_color(station, "ceiling") do
-    station
-    |> Station.get_ceiling()
-    |> case do
-      nil -> @colors.green
-      ft when ft in 0..1000 -> @colors.red
-      ft when ft in 1000..3000 -> MetarMap.blend(@colors.red, @colors.orange, 1000..3000, ft)
-      ft when ft in 3000..5000 -> MetarMap.blend(@colors.orange, @colors.yellow, 3000..5000, ft)
-      ft when ft in 5000..10000 -> MetarMap.blend(@colors.yellow, @colors.green, 5000..10000, ft)
-      _ -> @colors.green
-    end
+    MetarMap.blend_gradient(@ceiling_gradient, Station.get_ceiling(station), @colors.off)
+  end
+
+  defp station_color(station, "visibility") do
+    MetarMap.blend_gradient(@visiblity_gradient, Station.get_visibility(station), @colors.off)
   end
 
   defp wipe_delay_ms(%{station: %{position: nil}}), do: 0

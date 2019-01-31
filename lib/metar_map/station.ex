@@ -32,4 +32,8 @@ defmodule MetarMap.Station do
       %{base_agl: base_agl} -> base_agl
     end
   end
+
+  def get_visibility(%__MODULE__{metar: nil}), do: nil
+
+  def get_visibility(%__MODULE__{metar: %{visibility: visibility}}), do: visibility
 end

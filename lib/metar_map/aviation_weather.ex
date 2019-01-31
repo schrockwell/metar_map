@@ -67,13 +67,17 @@ defmodule MetarMap.AviationWeather do
         ~x"sky_condition"l,
         cover: ~x"@sky_cover"S,
         base_agl: ~x"@cloud_base_ft_agl"I
-      ]
+      ],
+      visibility: ~x"visibility_statute_mi/text()"s |> transform_by(&normalize_float/1)
     )
     |> Enum.map(&struct(MetarMap.Metar, &1))
   end
 
   defp normalize_integer(""), do: nil
   defp normalize_integer(string), do: string |> String.to_integer()
+
+  defp normalize_float(""), do: nil
+  defp normalize_float(string), do: string |> String.to_float()
 
   defp normalize_category("VFR"), do: :vfr
   defp normalize_category("MVFR"), do: :mvfr

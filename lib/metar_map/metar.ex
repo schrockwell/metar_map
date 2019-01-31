@@ -7,7 +7,8 @@ defmodule MetarMap.Metar do
     :wind_dir_degrees,
     :latitude,
     :longitude,
-    :sky_conditions
+    :sky_conditions,
+    :visibility
   ]
 
   @doc """

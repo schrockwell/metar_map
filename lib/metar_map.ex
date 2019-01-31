@@ -27,7 +27,40 @@ defmodule MetarMap do
   Naively blends two colors
   """
   def blend(from_color, to_color, %Range{} = range, value) do
-    blend(from_color, to_color, normalize(range.first, range.last, value))
+    blend(from_color, to_color, {range.first, range.last}, value)
+  end
+
+  def blend(from_color, to_color, {first, last}, value) do
+    blend(from_color, to_color, normalize(first, last, value))
+  end
+
+  @spec blend_gradient([{number(), %Color{}}], number, term) :: %Color{} | term
+  def blend_gradient(_, nil, default), do: default
+
+  def blend_gradient(gradient, value, _default) when is_list(gradient) do
+    gradient = Enum.sort(gradient)
+
+    {first_value, first_color} = hd(gradient)
+    {last_value, last_color} = List.last(gradient)
+
+    cond do
+      value <= first_value ->
+        first_color
+
+      value >= last_value ->
+        last_color
+
+      true ->
+        pairs = Enum.zip(Enum.slice(gradient, 0..-2), Enum.slice(gradient, 1..-1))
+
+        Enum.reduce_while(pairs, nil, fn
+          {{min_value, _}, _}, _ when min_value > value ->
+            {:cont, nil}
+
+          {{min_value, min_color}, {max_value, max_color}}, _ ->
+            {:halt, blend(min_color, max_color, {min_value, max_value}, value)}
+        end)
+    end
   end
 
   @doc """

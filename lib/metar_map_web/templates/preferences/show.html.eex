@@ -5,7 +5,7 @@
 
   <div class="mb-3">
     <label>The LEDs display</label>
-    <%= select(f, :mode, [{"flight category", "flight_category"}, {"wind speed", "wind_speed"}, {"ceiling", "ceiling"}]) %> .
+    <%= select(f, :mode, [{"flight category", "flight_category"}, {"wind speed", "wind_speed"}, {"ceiling", "ceiling"}, {"visibility", "visibility"}]) %> .
     <%= error_tag(f, :mode) %>
   </div>
 
