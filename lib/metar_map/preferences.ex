@@ -9,8 +9,11 @@ defmodule MetarMap.Preferences do
     field :max_wind_kts, :integer, default: 20
     field :wind_flash_interval_sec, :integer, default: 5
     field :mode, :string, default: "flight_category"
-    field :dark_room_intensity, :float, default: 0.5
-    field :bright_room_intensity, :float, default: 0.9
+
+    field :dark_sensor_pct, :integer, default: 30
+    field :bright_sensor_pct, :integer, default: 50
+    field :dark_brightness_pct, :integer, default: 25
+    field :bright_brightness_pct, :integer, default: 50
   end
 
   def load do
@@ -32,28 +35,34 @@ defmodule MetarMap.Preferences do
       :max_wind_kts,
       :wind_flash_interval_sec,
       :mode,
-      :dark_room_intensity,
-      :bright_room_intensity
+      :dark_sensor_pct,
+      :bright_sensor_pct,
+      :dark_brightness_pct,
+      :bright_brightness_pct
     ]
 
     prefs
     |> cast(params, permitted)
     |> validate_inclusion(:mode, ["flight_category", "wind_speed", "ceiling", "visibility"])
-    |> validate_number(:brightness_pct, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
+    |> validate_percents([
+      :brightness_pct,
+      :dark_brightness_pct,
+      :bright_brightness_pct,
+      :dark_sensor_pct,
+      :bright_sensor_pct
+    ])
     |> validate_number(:max_wind_kts, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
     |> validate_number(:wind_flash_interval_sec,
       greater_than_or_equal_to: 1,
       less_than_or_equal_to: 60
     )
-    |> validate_number(:dark_room_intensity,
-      greater_than_or_equal_to: 0,
-      less_than_or_equal_to: 1.0
-    )
-    |> validate_number(:bright_room_intensity,
-      greater_than_or_equal_to: 0,
-      less_than_or_equal_to: 1.0
-    )
     |> Map.put(:action, :update)
+  end
+
+  defp validate_percents(changeset, fields) do
+    Enum.reduce(fields, changeset, fn field, changeset ->
+      validate_number(changeset, field, greater_than_or_equal_to: 0, less_than_or_equal_to: 100)
+    end)
   end
 
   def update(prefs, params) do
@@ -76,12 +85,12 @@ defmodule MetarMap.Preferences do
     end
   end
 
-  def calibrate_dark_room(prefs) do
-    update(prefs, %{dark_room_intensity: MetarMap.LdrSensor.read()})
+  def calibrate_room(prefs, "dark") do
+    update(prefs, %{dark_sensor_pct: trunc(MetarMap.LdrSensor.read() * 100)})
   end
 
-  def calibrate_bright_room(prefs) do
-    update(prefs, %{bright_room_intensity: MetarMap.LdrSensor.read()})
+  def calibrate_room(prefs, "bright") do
+    update(prefs, %{bright_sensor_pct: trunc(MetarMap.LdrSensor.read() * 100)})
   end
 
   def save(%__MODULE__{} = prefs) do

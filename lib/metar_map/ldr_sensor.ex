@@ -19,8 +19,12 @@ defmodule MetarMap.LdrSensor do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def read() do
-    GenServer.call(__MODULE__, :read)
+  def read do
+    if available?() do
+      GenServer.call(__MODULE__, :read)
+    else
+      nil
+    end
   end
 
   def available?() do
@@ -96,6 +100,10 @@ defmodule MetarMap.LdrSensor do
   # Ignore all other transitions (lazy debounce)
   def handle_info({:gpio, _pin_number, _timestamp, _value}, state) do
     {:noreply, state}
+  end
+
+  defp normalize_value(%{rise_times: []}) do
+    0.0
   end
 
   defp normalize_value(state) do

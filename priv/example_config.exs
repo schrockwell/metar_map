@@ -2,7 +2,7 @@ use Mix.Config
 
 led_count = 100
 led_pin = 18
-ldr_pin = false
+ldr_pin = 1
 
 config :blinkchain, canvas: {led_count, 1}
 

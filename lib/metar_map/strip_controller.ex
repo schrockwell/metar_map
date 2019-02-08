@@ -18,7 +18,7 @@ defmodule MetarMap.StripController do
   def init(opts) do
     prefs = Keyword.fetch!(opts, :prefs)
 
-    initial_brightness = preferred_brightness(prefs)
+    initial_brightness = room_brightness(prefs, :bright)
 
     initial_state = %{
       prefs: prefs,
@@ -54,7 +54,7 @@ defmodule MetarMap.StripController do
   end
 
   def handle_info({:ldr_brightness, ldr_brightness}, state) do
-    next_room = room_designation(state.prefs, ldr_brightness)
+    next_room = designate_room(state, ldr_brightness)
     next_state = %{state | room: next_room}
 
     if next_room != state.room do
@@ -65,28 +65,37 @@ defmodule MetarMap.StripController do
   end
 
   defp put_brightness_transition(state) do
-    # TODO: Averaging? Hysterisis?
-    dimmed_brightness = trunc(preferred_brightness(state.prefs) * room_factor(state.room))
-
     next_timeline =
-      Timeline.append(state.brightness_timeline, @brightness_transition_ms, dimmed_brightness)
+      Timeline.append(
+        state.brightness_timeline,
+        @brightness_transition_ms,
+        room_brightness(state.prefs, state.room)
+      )
 
     %{state | brightness_timeline: next_timeline}
   end
 
-  defp preferred_brightness(prefs) do
-    trunc(prefs.brightness_pct / 100 * 255)
-  end
-
-  defp room_designation(prefs, ldr_brightness) do
+  defp designate_room(state, ldr_brightness) do
     cond do
-      ldr_brightness < prefs.dark_room_intensity + 0.1 -> :dark
-      ldr_brightness > prefs.bright_room_intensity - 0.1 -> :bright
-      true -> :normal
+      ldr_brightness < state.prefs.dark_intensity_pct / 100 -> :dark
+      ldr_brightness > state.prefs.bright_intensity_pct / 100 -> :bright
+      true -> state.room
     end
   end
 
-  defp room_factor(:dark), do: 0.2
-  defp room_factor(:normal), do: 0.5
-  defp room_factor(:bright), do: 1.0
+  defp room_brightness(prefs, room) do
+    room_brightness(prefs, room, MetarMap.LdrSensor.available?())
+  end
+
+  defp room_brightness(prefs, _, false) do
+    prefs.brightness_pct
+  end
+
+  defp room_brightness(prefs, :dark, true) do
+    prefs.dark_brightness_pct / 100 * 255
+  end
+
+  defp room_brightness(prefs, :bright, true) do
+    prefs.bright_brightness_pct / 100 * 255
+  end
 end
