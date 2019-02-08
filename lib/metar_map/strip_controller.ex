@@ -77,8 +77,8 @@ defmodule MetarMap.StripController do
 
   defp designate_room(state, ldr_brightness) do
     cond do
-      ldr_brightness < state.prefs.dark_intensity_pct / 100 -> :dark
-      ldr_brightness > state.prefs.bright_intensity_pct / 100 -> :bright
+      ldr_brightness < state.prefs.dark_sensor_pct / 100 -> :dark
+      ldr_brightness > state.prefs.bright_sensor_pct / 100 -> :bright
       true -> state.room
     end
   end
