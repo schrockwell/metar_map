@@ -18,13 +18,14 @@ defmodule MetarMap.StripController do
   def init(opts) do
     prefs = Keyword.fetch!(opts, :prefs)
 
-    initial_brightness = room_brightness(prefs, :bright)
+    initial_brightness = led_brightness(prefs, :bright)
 
     initial_state = %{
       prefs: prefs,
       brightness_timeline: Timeline.init(initial_brightness, {MetarMap.Interpolation, :integers}),
       latest_brightness: initial_brightness,
-      room: :bright
+      room: :bright,
+      ldr_brightness: 0.0
     }
 
     Blinkchain.set_brightness(@channel, initial_brightness)
@@ -35,8 +36,7 @@ defmodule MetarMap.StripController do
   end
 
   def handle_cast({:put_prefs, prefs}, state) do
-    next_state = %{state | prefs: prefs}
-    {:noreply, put_brightness_transition(next_state)}
+    {:noreply, update_brightness(%{state | prefs: prefs})}
   end
 
   def handle_info(:render, state) do
@@ -54,48 +54,47 @@ defmodule MetarMap.StripController do
   end
 
   def handle_info({:ldr_brightness, ldr_brightness}, state) do
-    next_room = designate_room(state, ldr_brightness)
-    next_state = %{state | room: next_room}
+    {:noreply, update_brightness(%{state | ldr_brightness: ldr_brightness})}
+  end
+
+  defp update_brightness(state) do
+    next_room = designate_room(state)
 
     if next_room != state.room do
       Logger.info("[StripController] Room went #{state.room} -> #{next_room}")
     end
 
-    {:noreply, put_brightness_transition(next_state)}
-  end
-
-  defp put_brightness_transition(state) do
     next_timeline =
       Timeline.append(
         state.brightness_timeline,
         @brightness_transition_ms,
-        room_brightness(state.prefs, state.room)
+        led_brightness(state.prefs, next_room)
       )
 
-    %{state | brightness_timeline: next_timeline}
+    %{state | brightness_timeline: next_timeline, room: next_room}
   end
 
-  defp designate_room(state, ldr_brightness) do
+  defp designate_room(state) do
     cond do
-      ldr_brightness < state.prefs.dark_sensor_pct / 100 -> :dark
-      ldr_brightness > state.prefs.bright_sensor_pct / 100 -> :bright
+      state.ldr_brightness < state.prefs.dark_sensor_pct / 100 -> :dark
+      state.ldr_brightness > state.prefs.bright_sensor_pct / 100 -> :bright
       true -> state.room
     end
   end
 
-  defp room_brightness(prefs, room) do
-    room_brightness(prefs, room, MetarMap.LdrSensor.available?())
+  defp led_brightness(prefs, room) do
+    led_brightness(prefs, room, MetarMap.LdrSensor.available?())
   end
 
-  defp room_brightness(prefs, _, false) do
+  defp led_brightness(prefs, _, false) do
     prefs.brightness_pct
   end
 
-  defp room_brightness(prefs, :dark, true) do
+  defp led_brightness(prefs, :dark, true) do
     prefs.dark_brightness_pct / 100 * 255
   end
 
-  defp room_brightness(prefs, :bright, true) do
+  defp led_brightness(prefs, :bright, true) do
     prefs.bright_brightness_pct / 100 * 255
   end
 end
