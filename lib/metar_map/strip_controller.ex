@@ -91,10 +91,10 @@ defmodule MetarMap.StripController do
   end
 
   defp led_brightness(prefs, :dark, true) do
-    prefs.dark_brightness_pct / 100 * 255
+    trunc(prefs.dark_brightness_pct / 100 * 255)
   end
 
   defp led_brightness(prefs, :bright, true) do
-    prefs.bright_brightness_pct / 100 * 255
+    trunc(prefs.bright_brightness_pct / 100 * 255)
   end
 end
