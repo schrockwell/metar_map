@@ -10,9 +10,11 @@
 
 ## Directions
 
+### Install Raspbian (macOS)
+
 Download and unzip Raspbian.
 
-```
+```bash
 # Get SD card device, e.g. /dev/disk2, then unmount it
 diskutil list
 diskutil unmountDisk /dev/disk2
@@ -41,13 +43,15 @@ network={
 
 Now eject the SD card.
 
-```
+```bash
 diskutil eject /dev/disk2
 ```
 
+### Install Project
+
 Log into the pi as user `pi` with password `raspberry`. Do everything below as `root`
 
-```
+```bash
 # We're rooting for you!
 sudo bash
 
@@ -55,9 +59,11 @@ sudo bash
 vim /etc/hostname
 vim /etc/hosts
 reboot 
+```
 
-# Log back in...
+Then log back in.
 
+```bash
 # Set up Elixir/Erlang repos for apt
 echo "deb https://packages.erlang-solutions.com/debian stretch contrib" | sudo tee /etc/apt/sources.list.d/erlang-solutions.list
 wget https://packages.erlang-solutions.com/debian/erlang_solutions.asc
@@ -73,6 +79,11 @@ cd /root
 git clone https://github.com/schrockwell/metar_map.git
 cd metar_map
 
+# Set up static application config - see below in README
+mkdir -p /etc/metar-map
+cp priv/example_config.exs /etc/metar-map/config.exs
+vim /etc/metar-map/config # And edit away!
+
 # Do the initial compilation
 export MIX_ENV=prod CROSSCOMPILE=1 # Hack for Blinkchain
 
@@ -80,13 +91,8 @@ mix local.rebar --force
 mix local.hex --force
 mix compile # This will take a while
 
-# Set up systemd
+# Set up systemd service
 cp priv/metar-map.service /etc/systemd/system/metar-map.service
-
-# Set up static application config (stations, etc.)
-mkdir -p /etc/metar-map
-cp priv/example_config.exs /etc/metar-map/config.exs
-vim /etc/metar-map/config # And edit away!
 
 # Launch it!
 systemctl enable metar-map
@@ -96,9 +102,65 @@ systemctl status metar-map
 
 Look for it running on port 80.
 
+## Example Config File
+
+As part of the steps above, you'll copy a config file to `/etc/metar-map/config.exs`. Here's what
+that looks like.
+
+```elixir
+#
+# This config file belongs at:
+#
+#     /etc/metar-map/config.exs
+#
+# Modify the values below for your particular build.
+#
+use Mix.Config
+
+# The total number of WS281x LEDs in the string
+led_count = 100
+
+# The GPIO pin for WS281x LED data control.
+# To see available pins, read: https://github.com/jgarff/rpi_ws281x#gpio-usage
+led_pin = 18
+
+# If the light sensor (LDR) is connected, use this GPIO pin.
+# Set to false if no light sensor is connected.
+ldr_pin = 1
+
+# The stations are an array of tuples containing the full airport identifier and the LED
+# index (zero-based).
+stations = [
+  {"KHFD", 1},
+  {"KBDL", 2},
+  {"KHYA", 3},
+  {"KMWN", 4}
+]
+
+# --- No need to change anything below ---
+
+config :blinkchain, canvas: {led_count, 1}
+
+config :blinkchain, :channel0,
+  pin: led_pin,
+  type: :rgb,
+  arrangement: [
+    %{
+      type: :strip,
+      origin: {0, 0},
+      count: led_count,
+      direction: :right
+    }
+  ]
+
+config :metar_map,
+  ldr_pin: ldr_pin,
+  stations: stations
+```
+
 ## On-Device Development
 
-```
+```bash
 export MIX_ENV=prod CROSSCOMPILE=1 # Hack for Blinkchain
 
 cd /root/metar_map
