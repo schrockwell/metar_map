@@ -1,3 +1,9 @@
+# THIS PROJECT HAS BEEN SUPERCEDED
+
+[metar_map_nerves](https://github.com/schrockwell/metar_map_nerves) is the next iteration.
+
+The new project is basically the same, except it runs on Nerves now.
+
 # Raspberry Pi Setup
 
 ## Versions
@@ -173,4 +179,3 @@ mix phx.server
 ## Helpful Stuff
 
 Use `pinout` to see the Raspberry Pi pinout! Whoa!
-
